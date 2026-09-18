@@ -1,0 +1,3 @@
+arm-none-eabi-as -mcpu=cortex-m4 -mthumb test.s -o test.o
+arm-none-eabi-ld -Ttext=00000000 test.o -o test.elf
+arm-none-objcopy -O binary test.elf test.bin
