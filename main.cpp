@@ -19,6 +19,9 @@ int main(int argc, char *argv[] ){
    *  a.) Option 1: get the size of the file in bytes and allocate an array that will store all the bytes
    *  b.) Option 2: read in 32 (or more due to thumb instructiosn) bit intervals and using a fixed 32 bit buffer, to store the 32 bits and to read off it
    *  c.) Option 3: use vector data type for memory
+   *
+   *  2a. I used a vector object to create virtual memory of the emulator but what about
+   *  perhaps I make a class 
    */
   if(argv[1] == NULL){
     cout << "Missing argument!";
@@ -28,10 +31,17 @@ int main(int argc, char *argv[] ){
   BinFile binfile(argv[1]);  
 
   // Initialize memory 
+  //
+  Memory memory(binfile);
 
-  vector<uint8_t> memory = init_memory(binfile); 
+  cout << "The first byte is: " << static_cast<int>(memory.read_8bit(0)) << "\n";
 
-  print_memory(memory);
+  memory.write_8bit(0, static_cast<uint8_t>(6));
+
+  cout << "The first byte is: " << static_cast<int>(memory.read_8bit(0x0)) << "\n";
+
+  memory.print_memory();
+
 
   return 0;
 }
