@@ -2,33 +2,12 @@
 #include <fstream>
 #include <string>
 #include <filesystem>
+#include <vector>
 
+#include "bin_file.hpp"
 #include "memory.hpp"
 
 using namespace std;
-
-class BinFile{
-  public:
-    explicit BinFile(const string& path){ 
-      bin_fd_.open(path, ios::binary);
-
-      if(!bin_fd_.is_open()){
-        cout << "Opening file in constructor...FAILED" << endl;
-        return;
-      }
-
-      file_size_ = filesystem::file_size(path);
-    }
-
-  uintmax_t get_file_size() const{
-    return file_size_;
-  }
-
-  private:
-    ifstream bin_fd_;
-    uintmax_t file_size_;
-     
-};
 
 int main(int argc, char *argv[] ){
 
@@ -48,6 +27,11 @@ int main(int argc, char *argv[] ){
 
   BinFile binfile(argv[1]);  
 
+  // Initialize memory 
+
+  vector<uint8_t> memory = init_memory(binfile); 
+
+  print_memory(memory);
 
   return 0;
 }

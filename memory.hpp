@@ -1,8 +1,12 @@
+#pragma once
+
 #include <vector>
 #include <cstdint>
+#include <iostream>
 
-using namespace std;
+class BinFile;
 
-vector<uint8_t> init_memory(uintmax_t size);
+std::vector<uint8_t> init_memory(BinFile& binfile);
 
+void print_memory(std::vector<uint8_t>& memory);
 
