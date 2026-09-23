@@ -1,31 +1,38 @@
 #pragma once
 
+#include <vector.hpp>
+
 
 class Cpu{
   private:
-    // General Purpose Registers
-    uint32_t r0;
-    uint32_t r1;
-    uint32_t r2;
-    uint32_t r3;
-    uint32_t r4;
-    uint32_t r5;
-    uint32_t r6;
-    uint32_t r7;
-    uint32_t r8;
-    uint32_t r9;
-    uint32_t r10;
-    uint32_t r11;
-    uint32_t r12;
-
-    uint32_t pc; // Program Counter
-    uint32_t lr; // Link Register
-    uint32_t sp; // Stack Pointer
+  // General Purpose Registers
+    std::array<uint32_t, 16> regs_{};
 
   public:
-    explicit Cpu();
+    enum class Cpu::Register{
+      R0,
+      R1,
+      R2,
+      R3,
+      R4,
+      R5,
+      R6,
+      R7,
+      R8,
+      R9,
+      R10,
+      R11,
+      R12,
+      SP,
+      LR,
+      PC
+    };
 
-  // need to create write in register and mayeb read register
+    uint32_t read_reg(Register reg);
+    void write_reg(Register reg, uint32_t value);
+    
+
+  
 };
 
 

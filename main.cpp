@@ -6,6 +6,7 @@
 
 #include "bin_file.hpp"
 #include "memory.hpp"
+#include "cpu.hpp"
 
 using namespace std;
 
@@ -31,16 +32,18 @@ int main(int argc, char *argv[] ){
   BinFile binfile(argv[1]);  
 
   // Initialize memory 
-  //
+  
   Memory memory(binfile);
 
-  cout << "The first byte is: " << static_cast<int>(memory.read_8bit(0)) << "\n";
+  // Initialize cpu
+  Cpu cpu;
 
-  memory.write_8bit(0, static_cast<uint8_t>(6));
+  // ARM assembly has 2 byte and 4 byte instructions
+  // implement cpu running for 9/23-24
+  while(cpu.read_reg(Cpu::Register::PC) < static_cast<uint32_t>(binfile.get_file_size())){
+    
 
-  cout << "The first byte is: " << static_cast<int>(memory.read_8bit(0x0)) << "\n";
-
-  memory.print_memory();
+  }
 
 
   return 0;
