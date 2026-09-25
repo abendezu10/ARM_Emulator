@@ -27,7 +27,7 @@ int main(int argc, char *argv[] ){
   if(argv[1] == NULL){
     cout << "Missing argument!";
     return -1;
-  }
+}
 
   BinFile binfile(argv[1]);  
 
@@ -40,9 +40,10 @@ int main(int argc, char *argv[] ){
 
   // ARM assembly has 2 byte and 4 byte instructions
   // implement cpu running for 9/23-24
-  while(cpu.read_reg(Cpu::Register::PC) < static_cast<uint32_t>(binfile.get_file_size())){
+  while(cpu.read_reg(Cpu::Register::PC) static_cast<uint32_t>(binfile.get_file_size())){
     
-
+    cpu.increment_pc(Cpu.increment_pc(2));
+    
   }
 
 
