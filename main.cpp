@@ -3,6 +3,7 @@
 #include <string>
 #include <filesystem>
 #include <vector>
+#include <iomanip>
 
 #include "bin_file.hpp"
 #include "memory.hpp"
@@ -40,12 +41,13 @@ int main(int argc, char *argv[] ){
 
   // ARM assembly has 2 byte and 4 byte instructions
   // implement cpu running for 9/23-24
-  while(cpu.read_reg(Cpu::Register::PC) static_cast<uint32_t>(binfile.get_file_size())){
-    
-    cpu.increment_pc(Cpu.increment_pc(2));
-    
-  }
-
-
+  // while(cpu.read_reg(Cpu::Register::PC) < static_cast<uint32_t>(binfile.get_file_size())){
+  //
+  //
+  //
+  //   cpu.increment_pc(Cpu.increment_pc());
+  //
+  // }
+  cout << "PC = 0x" << hex << setw(8) << setfill('0') << memory.read_16bit(0) << '\n';
   return 0;
 }

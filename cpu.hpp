@@ -30,6 +30,21 @@ class Cpu{
       PC
     };
 
+  enum class Opcode{
+    movs,
+    mov ,
+    add ,
+    adds
+  };
+
+  struct decoded_instr{
+    Opcode opcode;
+    uint32_t dest_reg;
+    uint32_t src_reg;
+    uint32_t imm_value;
+    uint8_t instr_size;
+  }
+
     uint32_t read_reg(Register reg) const;
     void write_reg(Register reg, uint32_t value);
 
