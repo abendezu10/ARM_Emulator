@@ -29,12 +29,6 @@ class Cpu{
       PC
     };
 
-    typedef struct Instruction{
-      uint16_t mask;
-      uint16_t pattern;
-      void (*handler)(uint16_t);
-    }Instr;
-
     uint32_t read_reg(Register reg) const;
     void write_reg(Register reg, uint32_t value);
 

@@ -20,4 +20,11 @@ uint16_t Cpu::fetch16(Memory& memory){
   return instr_16bit;
 }
 
-
+/*
+ * I have an instruction : 0x2003 movs r0, #3
+ *
+ * 0010 0000 0000 0011; to get the opcode, shift >> 10 & 0x1f; this becomes 0000 0000 0000 1000
+ * using that number, I use that as an index so instr_arr[0b00100] = &movs_instr_handler.
+ *
+ * Here it 
+ */
