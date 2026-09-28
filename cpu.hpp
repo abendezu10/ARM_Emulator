@@ -11,7 +11,7 @@ class Cpu{
     void increment_pc(uint32_t instruction_size);
 
   public:
-  enum class Register{
+    enum class Register{
       R0,
       R1,
       R2,
@@ -26,24 +26,14 @@ class Cpu{
       R11,
       R12,
       SP,
-      LR,
       PC
     };
 
-  enum class Opcode{
-    movs,
-    mov ,
-    add ,
-    adds
-  };
-
-  struct decoded_instr{
-    Opcode opcode;
-    uint32_t dest_reg;
-    uint32_t src_reg;
-    uint32_t imm_value;
-    uint8_t instr_size;
-  }
+    typedef struct Instruction{
+      uint16_t mask;
+      uint16_t pattern;
+      void (*handler)(uint16_t);
+    }Instr;
 
     uint32_t read_reg(Register reg) const;
     void write_reg(Register reg, uint32_t value);
