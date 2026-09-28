@@ -24,7 +24,6 @@ uint16_t Cpu::fetch16(Memory& memory){
 
 void Cpu::decode(uint16_t half_word){
   uint8_t word_check = instr >> 11;
-
   if(word_check == 0x2b5d | word_check == 0x2b66 | word_check == 0x2267){
       
     return;
@@ -33,6 +32,10 @@ void Cpu::decode(uint16_t half_word){
   uint8_t opcode = (instr_16bit >> 12) & 0xf;
   uint8_t reg = (instr_16bit >> 8) & 0xf;
   uint8_t imm_value = instr_16bit & 0xff;
+
+  //create a structure for the parts of the isntruction
+
+
 }
 
 void Cpu::execute(){
