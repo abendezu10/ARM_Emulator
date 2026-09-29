@@ -9,6 +9,13 @@
 #include "memory.hpp"
 #include "cpu.hpp"
 
+/*
+ *Going to need to add the stack pointer and reset vector with thumb bit and the start of the program
+ * 0x0 Initial SP
+ * 0x4 Reset Vector 0x00 00 00 09(1001) bit 0 = 1 so it is Thumb state
+ * 0x8 Start of program 0x2005 - MOVS R0, #5 
+ */
+
 using namespace std;
 
 int main(int argc, char *argv[] ){
@@ -45,7 +52,6 @@ int main(int argc, char *argv[] ){
   //
   //
   //
-  //   cpu.increment_pc(Cpu.increment_pc());
   //
   // }
   cout << "PC = 0x" << hex << setw(8) << setfill('0') << memory.read_16bit(0) << '\n';
