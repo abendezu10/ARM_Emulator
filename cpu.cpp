@@ -20,6 +20,24 @@ uint16_t Cpu::fetch16(Memory& memory){
   return instr_16bit;
 }
 
+DecodedInstruction decode(uint16_t instruction){
+  struct DecodedInstruction decoded_instr = {};
+  uint8_t handler_id = (instruction >> 10) & 0xff;
+  if(handler_id >= 0b111010 ){
+    // this is a 32 bit instruction
+  }
+
+  decoded_instr = handler_table_[handler_id](instruction);
+
+  return decoded_instr;
+}
+
+void cpu_cycle(Memory& memory){
+  uint16_t instr = fetch16(memory);
+
+
+}
+
 /*
  * I have an instruction : 0x2003 movs r0, #3
  *
@@ -28,3 +46,5 @@ uint16_t Cpu::fetch16(Memory& memory){
  *
  * Here it 
  */
+
+
