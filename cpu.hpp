@@ -6,12 +6,16 @@
 
 class Cpu{
   private:
-  // General Purpose Registers
-    using DecodeHandler = DecodedInstruction (*)();
+    using DecodeHandler = DecodedInstruction (*)(DecodedInstruction&);
     using ExecuteHandler = void (*)(uint32_t, uint32_t, uint32_t, int32_t);
 
     std::array<DecodeHandler, 64> handler_table_{};
+
+
+    // General Purpose Registers
     std::array<uint32_t, 16> regs_{};
+
+    // CPU Registers
     uint32_t ir_{0};
 
     void increment_pc_(uint8_t instruction_size);
@@ -46,8 +50,8 @@ class Cpu{
       Register rd;
       Register rn;
       ExecuteHandler execute;
-      uint8_t instruction_size;
-    }
+      uint8_t size;
+    };
 
     uint32_t read_reg(Register reg) const;
     void write_reg(Register reg, uint32_t value);

@@ -7,7 +7,7 @@
 
 #include "bin_file.hpp"
 #include "memory.hpp"
-#include "cpu.hpp"
+//#include "cpu.hpp"
 
 /*
  *Going to need to add the stack pointer and reset vector with thumb bit and the start of the program
@@ -32,7 +32,7 @@ int main(int argc, char *argv[] ){
    *  2a. I used a vector object to create virtual memory of the emulator but what about
    *  perhaps I make a class 
    */
-  if(argv[1] == NULL){
+  if(argv[1] == nullptr){
     cout << "Missing argument!";
     return -1;
 }
@@ -40,20 +40,15 @@ int main(int argc, char *argv[] ){
   BinFile binfile(argv[1]);  
 
   // Initialize memory 
-  
   Memory memory(binfile);
 
   // Initialize cpu
-  Cpu cpu;
+  //Cpu cpu;
 
-  // ARM assembly has 2 byte and 4 byte instructions
-  // implement cpu running for 9/23-24
-  // while(cpu.read_reg(Cpu::Register::PC) < static_cast<uint32_t>(binfile.get_file_size())){
-  //
-  //
-  //
-  //
-  // }
-  cout << "PC = 0x" << hex << setw(8) << setfill('0') << memory.read_16bit(0) << '\n';
+  memory.print_memory();
+  //while(cpu.read_reg(Cpu::Register::PC) < static_cast<uint32_t>(binfile.get_file_size())){
+  //  cpu.cycle(memory);
+  //}
+  //cout << "PC = 0x" << hex << setw(8) << setfill('0') << memory.read_16bit(0) << '\n';
   return 0;
 }
