@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdint>
 #include <iostream>
+#include <iomanip>
 
 class BinFile;
 
@@ -23,6 +24,6 @@ class Memory{
     void write_16bit(uint32_t addr, uint16_t value);
     void write_32bit(uint32_t addr, uint32_t value);
 
-    void print_memory();
+    void print_memory() const;
 };
 

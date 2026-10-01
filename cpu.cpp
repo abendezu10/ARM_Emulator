@@ -3,12 +3,13 @@
 
 using namespace std;
 
-
 Cpu::Cpu(){
-
-   handler_table_.fill(&decode_nop);
-   handler_table_[0b00100] = &decode_thumb16_movs_imm;
-
+  handler_table_.fill(&decode_nop);
+  handler_table_[0b001000] = &decode_thumb16_movs_imm;
+  handler_table_[0b001001] = &decode_thumb16_movs_imm;
+  handler_table_[0b001100] = &decode_thumb16_add_sub_group;
+  handler_table_[0b111000] = &decode_thumb16_uncond_branch;
+  handler_table_[0b111001] = &decode_thumb16_uncond_branch;
 }
 
 inline uint32_t Cpu::read_reg(Register reg) const{
@@ -18,7 +19,6 @@ inline uint32_t Cpu::read_reg(Register reg) const{
 inline void Cpu::write_reg(Register reg, uint32_t value){ 
   regs_[static_cast<size_t>(reg)] = value;
 }
-
 
 // A bug here so when it is 32 bit instruction it will overwrite the first [15:0] bits instead of filling the rest 
 // of the register
@@ -54,6 +54,46 @@ void Cpu::execute_thumb16_movs_imm(const DecodedInstruction& decoded){
   write_reg(decoded.rd, decoded.imm);
 }
 
+void Cpu::decode_thumb16_add_sub_group(DecodedInstruction& decoded){
+  decoded.opcode = (ir_ >> 9) & 1;
+  decoded.rd = static_cast<Register>(ir_ & 0xff); 
+  decoded.rn = static_cast<Register>((ir_ >> 3) & 0xff)
+  decoded.rm = static_cast<Register>((ir_ >> 6) & 0xff);
+  decoded.size = 2;
+
+  switch(decoded.opcode){
+    case 0:
+      decoded.execute = &execute_thumb16_add_regs(decoded);
+      break;
+
+    case 1:
+      decoded.execute = &execute_thumb16_sub_regs(decoded);
+      break;
+  };
+}
+
+void Cpu::execute_thumb16_add_regs(const DecodedInstruction& decoded){
+  write_reg(decoded.rd, read_reg(decoded.rm) + read_reg(decoded.rn)) 
+}
+
+void Cpu::execute_thumb16_sub_regs(const DecodedInstruction& decoded){
+  write_reg(decoded.rd, read_reg(deocded.rn) - read_reg(decoded.rm));
+}
+
+void Cpu::decode_thumb16_uncond_branch(DecodeInstruction& decoded){
+  decoded.opcode = (ir_ >> 11) & 0xff;
+  
+  int8_t offset = static_cast<int8_t>(ir_ & 0xff);
+  decoded.imm = static_cast<int32_t>(offset) * 2;
+  decoded.execute = &execute_thumb16_uncond_branch;
+}
+
+void Cpu::execute_thumb16_uncond_branch(const DecodedInstruction& decoded){
+  write_reg(decoded.rd, read_reg(Register::PC) - decoded.imm);
+}
+
+
+
 /* No Operation - NOP instruction */
 
 void decode_nop(DecodedInstruction& decoded){
@@ -68,7 +108,7 @@ void cycle(Memory& memory){
   }
 
   fetch16(memory);
-
+  increment_pc(decoded_instr.size);
   DecodedInstruction decoded_instr{};
   decode_instruction(decoded_instr);
 
@@ -76,10 +116,8 @@ void cycle(Memory& memory){
     cout << "No Operation; No assigned execution handler!" << endl;
     return;
   }
-
   decoded_instr.execute(decoded_instr);
 
-  increment_pc(decoded_instr.size);
 
 }
 

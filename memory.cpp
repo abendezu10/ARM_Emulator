@@ -51,15 +51,18 @@ void Memory::write_32bit(uint32_t addr, uint32_t value){
 
 
 
-void Memory::print_memory(){
-  
-  vector<uint8_t>::iterator start = memory_.begin();
-  uintmax_t size = memory_.size();
+void Memory::print_memory() const{
+    std::cout << "The bytes are:\n";
 
-  cout << "The bytes are:\n";
+    for (std::size_t i = 0; i < memory_.size(); ++i) {
+        std::cout
+            << "0x"
+            << std::hex
+            << std::setw(2)
+            << std::setfill('0')
+            << static_cast<unsigned int>(memory_[i])
+            << '\n';
+    }
 
-  for(int i = 0; i < size; i++){
-    cout << *(start + i) ;
-  }
-  
+    std::cout << std::dec;
 }

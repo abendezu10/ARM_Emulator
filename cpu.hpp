@@ -46,8 +46,9 @@ class Cpu{
 
     struct DecodedInstruction{
       uint32_t opcode;
-      uint16_t imm;
+      int16_t imm;
       Register rd;
+      Register rm;
       Register rn;
       ExecuteHandler execute;
       uint8_t size;
