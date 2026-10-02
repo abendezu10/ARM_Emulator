@@ -1,4 +1,6 @@
 #include <iostream>
+#include <bitset> 
+#include <cstdint>  
 
 #include "cpu.hpp"
 #include "memory.hpp"
@@ -10,7 +12,7 @@ Cpu::Cpu(){
   handler_table_.fill(&Cpu::decode_nop);
   this->handler_table_[0b001000] = &Cpu::decode_thumb16_movs_imm;
   this->handler_table_[0b001001] = &Cpu::decode_thumb16_movs_imm;
-  this->handler_table_[0b001100] = &Cpu::decode_thumb16_add_sub_group;
+  this->handler_table_[0b000110] = &Cpu::decode_thumb16_add_sub_group;
   this->handler_table_[0b111000] = &Cpu::decode_thumb16_uncond_branch;
   this->handler_table_[0b111001] = &Cpu::decode_thumb16_uncond_branch;
 }
@@ -23,6 +25,7 @@ void Cpu::increment_pc(uint8_t instruction_size){
 // of the register
 void Cpu::fetch16(Memory& memory){
   ir_ = static_cast<uint32_t>(memory.read_16bit(regs_[static_cast<size_t>(Register::PC)]));
+  cout << ir_ << endl;
   increment_pc(2);
 }
 
@@ -53,6 +56,7 @@ void Cpu::cycle(Memory& memory){
 
 void Cpu::decode_instruction(DecodedInstruction& decoded){
   uint8_t handler_id = static_cast<uint8_t>((ir_ >> 10) & 0x3f);
+  cout << "Handler_id: " << bitset<8>(handler_id) << endl;
 
   if(handler_id >= 0b111010){
     // this is a 32 bit instruction
@@ -78,6 +82,7 @@ void Cpu::execute_thumb16_movs_imm(const DecodedInstruction& decoded){
 
 void Cpu::decode_thumb16_add_sub_group(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 9) & 1;
+
   decoded.rd = static_cast<Register>(ir_ & 0xff); 
   decoded.rn = static_cast<Register>((ir_ >> 3) & 0xff);
   decoded.rm = static_cast<Register>((ir_ >> 6) & 0xff);
