@@ -1,3 +1,7 @@
+/* Since we are going to add FLASH and SRAM, we are going to need to add the memory architecture
+ * in order for the instructions like "push" and "ldr/str" to work. 
+ */
+
 #include <iostream>
 #include <bitset> 
 #include <cstdint>  
