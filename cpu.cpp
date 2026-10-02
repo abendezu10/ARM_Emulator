@@ -10,11 +10,13 @@ using namespace std;
 
 Cpu::Cpu(){
   handler_table_.fill(&Cpu::decode_nop);
-  this->handler_table_[0b001000] = &Cpu::decode_thumb16_movs_imm;
-  this->handler_table_[0b001001] = &Cpu::decode_thumb16_movs_imm;
-  this->handler_table_[0b000110] = &Cpu::decode_thumb16_add_sub_group;
-  this->handler_table_[0b111000] = &Cpu::decode_thumb16_uncond_branch;
-  this->handler_table_[0b111001] = &Cpu::decode_thumb16_uncond_branch;
+  this->handler_table_[0b001000] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
+  this->handler_table_[0b001001] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
+  this->handler_table_[0b000110] = &Cpu::decode_thumb16_add_sub_group; // 7 opcode bits
+  this->handler_table_[0b111000] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
+  this->handler_table_[0b111001] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
+  this->handler_table_[0b101101] = &Cpu::decode_thumb16_push_misc_group; // 7 opcode bits
+
 }
 
 void Cpu::increment_pc(uint8_t instruction_size){
@@ -128,6 +130,27 @@ void Cpu::execute_thumb16_uncond_branch(const DecodedInstruction& decoded){
   uint32_t hardware_pc = read_reg(Register::PC) + 2;
   write_reg(Register::PC, hardware_pc + static_cast<uint32_t>(decoded.imm));
 }
+
+void Cpu::decode_thumb16_push_misc_group(DecodedInstruction& decoded){
+  decoded.opcode = (ir_ >> 9) & 1;
+  
+  switch(decoded.opcode){
+    case 0:
+
+      
+
+      decoded.execute = &Cpu::execute_thumb16_push;
+      break;
+
+    case 1:
+      break;
+  };
+}
+
+void Cpu::execute_thumb16_push(const DecodedInstruction& decoded){
+
+}
+
 
 
 

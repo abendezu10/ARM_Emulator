@@ -62,6 +62,10 @@ class Cpu{
     void decode_thumb16_uncond_branch(DecodedInstruction& decoded);
     void execute_thumb16_uncond_branch(const DecodedInstruction& decoded);
 
+    void decode_thumb16_push_misc_group(DecodedInstruction& decoded);
+    void execute_thumb16_push(const DecodedInstruction& decoded);
+
+
     void decode_nop(DecodedInstruction& decoded);
 
 
