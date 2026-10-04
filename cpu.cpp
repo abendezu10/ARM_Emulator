@@ -13,6 +13,12 @@ using namespace std;
 
 
 Cpu::Cpu(){
+  N_flag_ = 0;
+  Z_flag_ = 0;
+  C_flag_ = 0;
+  V_flag_ = 0;
+  Q_flag_ = 0;
+
   handler_table_.fill(&Cpu::decode_nop);
   this->handler_table_[0b001000] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
   this->handler_table_[0b001001] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
@@ -107,7 +113,13 @@ void Cpu::decode_thumb16_add_sub_group(DecodedInstruction& decoded){
 
 void Cpu::execute_thumb16_add_regs(const DecodedInstruction& decoded){
   cout << "ADDS instruction" << endl;
-  write_reg(decoded.rd, read_reg(decoded.rm) + read_reg(decoded.rn));
+  uint64_t sum = static_cast<uint64_t>(read_reg(decoded.rm)) + static_cast<uint64_t>(read_reg(decoded.rn));
+  if((sum >> 32) & 0x1U)
+    set_carry_flag();
+  else
+    clear_carry_flag();
+    
+  write_reg(decoded.rd, sum);
 }
 
 void Cpu::execute_thumb16_sub_regs(const DecodedInstruction& decoded){

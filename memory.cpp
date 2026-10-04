@@ -1,9 +1,5 @@
 #include "memory.hpp"
 #include "bin_file.hpp"
-/*
- * 512 KiB of flash memory: 0x0800 0000 - 0x0807 ffff 
- * 96 Kbytes of SRAM:       0x2000 0000 - 0x2001 7fff
- */
 
 using namespace std;
 

@@ -1,9 +1,15 @@
 #pragma once
+/*
+ * 512 KiB of flash memory: 0x0800 0000 - 0x0807 ffff  uint8_t *flash = new uint8_t[524288]
+ * 96 Kbytes of SRAM:       0x2000 0000 - 0x2001 7fff
+*/
+
 
 #include <vector>
 #include <cstdint>
 #include <iostream>
 #include <iomanip>
+#include <memory>
 
 class BinFile;
 
@@ -27,3 +33,23 @@ class Memory{
     void print_memory() const;
 };
 
+class Flash : public Memory {
+  public:
+     
+
+  private:
+    std::unique_ptr<uint8_t> flash_ = std::make_unique<uint8_t>(524288);
+
+
+};
+
+class SRAM : public Memory {
+  public:
+
+  private:
+    std::unique_ptr<uint8_t> sram_ = std::make_unique<uint8_t>(98304);
+
+
+
+
+};
