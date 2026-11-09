@@ -1,18 +1,21 @@
+
 /* Since we are going to add FLASH and SRAM, we are going to need to add the memory architecture
- * in order for the instructions like "push" and "ldr/str" to work. 
+ * in order for the instructions like "push" and "ldr/str" to work.
  */
 
 #include <iostream>
-#include <bitset> 
-#include <cstdint>  
+#include <bitset>
+#include <cstdint>
+#include <cstddef>
 
 #include "cpu.hpp"
 #include "memory.hpp"
 
-using namespace std;
-
-
-Cpu::Cpu(){
+Cpu::Cpu(uint32_t msp, uint32_t rhand_addr){
+  
+  regs_[static_cast<std::size_t>(Register::SP)] = msp;
+  regs_[static_cast<std::size_t>(Register::PC)] = rhandler_addr;
+  
   N_flag_ = 0;
   Z_flag_ = 0;
   C_flag_ = 0;
@@ -26,25 +29,24 @@ Cpu::Cpu(){
   this->handler_table_[0b111000] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
   this->handler_table_[0b111001] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
   this->handler_table_[0b101101] = &Cpu::decode_thumb16_push_misc_group; // 7 opcode bits
-
 }
 
-void Cpu::increment_pc(uint8_t instruction_size){
-  regs_[static_cast<size_t>(Register::PC)] += instruction_size;
+void Cpu::increment_pc(std::uint8_t instruction_size){
+  regs_[static_cast<std::size_t>(Register::PC)] += instruction_size;
 }
 
-// A bug here so when it is 32 bit instruction it will overwrite the first [15:0] bits instead of filling the rest 
+// A bug here so when it is 32 bit instruction it will overwrite the first [15:0] bits instead of filling the rest
 // of the register
 void Cpu::fetch16(Memory& memory){
-  ir_ = static_cast<uint32_t>(memory.read_16bit(regs_[static_cast<size_t>(Register::PC)]));
-  cout << ir_ << endl;
+  ir_ = static_cast<std::uint32_t>(memory.read_16bit(regs_[static_cast<std::size_t>(Register::PC)]));
+  std::cout << ir_ << std::endl;
   increment_pc(2);
 }
 
 void Cpu::cycle(Memory& memory){
 
   // if(memory == nullptr){
-  //   cout << "Memory class not initialized" << endl;
+  //   std::cout << "Memory class not initialized" << std::endl;
   //   return;
   // }
 
@@ -55,7 +57,7 @@ void Cpu::cycle(Memory& memory){
   decode_instruction(decoded_instr);
 
   if(decoded_instr.execute == nullptr){
-    cout << "No Operation; No assigned execution handler!" << endl;
+    std::cout << "No Operation; No assigned execution handler!" << std::endl;
     return;
   }
 
@@ -63,16 +65,14 @@ void Cpu::cycle(Memory& memory){
   (this->*execute)(decoded_instr);
 }
 
-
-
-
 void Cpu::decode_instruction(DecodedInstruction& decoded){
-  uint8_t handler_id = static_cast<uint8_t>((ir_ >> 10) & 0x3f);
-  cout << "Handler_id: " << bitset<8>(handler_id) << endl;
+  std::uint8_t handler_id = static_cast<std::uint8_t>((ir_ >> 10) & 0x3f);
+  std::cout << "Handler_id: " << std::bitset<8>(handler_id) << std::endl;
 
   if(handler_id >= 0b111010){
-    // this is a 32 bit instruction
+    // this is a 32 bit instruction and first it fetches 16 bit then fetches other half word if it has this prefix
   }
+
   DecodeHandler handler = this->handler_table_[handler_id];
   (this->*handler)(decoded);
 }
@@ -88,14 +88,14 @@ void Cpu::decode_thumb16_movs_imm(DecodedInstruction& decoded){
 }
 
 void Cpu::execute_thumb16_movs_imm(const DecodedInstruction& decoded){
-  cout << "MOVS instruction" << endl;
+  std::cout << "MOVS instruction" << std::endl;
   write_reg(decoded.rd, decoded.imm);
 }
 
 void Cpu::decode_thumb16_add_sub_group(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 9) & 1;
 
-  decoded.rd = static_cast<Register>(ir_ & 0xff); 
+  decoded.rd = static_cast<Register>(ir_ & 0xff);
   decoded.rn = static_cast<Register>((ir_ >> 3) & 0xff);
   decoded.rm = static_cast<Register>((ir_ >> 6) & 0xff);
   decoded.size = 2;
@@ -112,48 +112,47 @@ void Cpu::decode_thumb16_add_sub_group(DecodedInstruction& decoded){
 }
 
 void Cpu::execute_thumb16_add_regs(const DecodedInstruction& decoded){
-  cout << "ADDS instruction" << endl;
-  uint64_t sum = static_cast<uint64_t>(read_reg(decoded.rm)) + static_cast<uint64_t>(read_reg(decoded.rn));
+  std::cout << "ADDS instruction" << std::endl;
+  std::uint64_t sum = static_cast<std::uint64_t>(read_reg(decoded.rm)) + static_cast<std::uint64_t>(read_reg(decoded.rn));
+
   if((sum >> 32) & 0x1U)
     set_carry_flag();
   else
     clear_carry_flag();
-    
+
   write_reg(decoded.rd, sum);
 }
 
 void Cpu::execute_thumb16_sub_regs(const DecodedInstruction& decoded){
-  cout << "SUBS instruction" << endl;
+  std::cout << "SUBS instruction" << std::endl;
   write_reg(decoded.rd, read_reg(decoded.rn) - read_reg(decoded.rm));
 }
 
 void Cpu::decode_thumb16_uncond_branch(DecodedInstruction& decoded){
 
   decoded.opcode = (ir_ >> 11) & 0xff;
-  
-  int8_t offset = static_cast<int8_t>(ir_ & 0xff);
-  decoded.imm = static_cast<int32_t>(offset) * 2;
+
+  std::int8_t offset = static_cast<std::int8_t>(ir_ & 0xff);
+  decoded.imm = static_cast<std::int32_t>(offset) * 2;
   decoded.execute = &Cpu::execute_thumb16_uncond_branch;
   decoded.size = 2;
 }
 
 void Cpu::execute_thumb16_uncond_branch(const DecodedInstruction& decoded){
   /* Based on CPU pipeline of the ARM architecture, the hardware_pc and emulator_pc (apart of the regs_)
-   * are different values so i just used a simple hardware_pc to simulate that 
+   * are different values so i just used a simple hardware_pc to simulate that
    */
 
-  cout << "Unconditional Jump Instruction" << endl;
-  uint32_t hardware_pc = read_reg(Register::PC) + 2;
-  write_reg(Register::PC, hardware_pc + static_cast<uint32_t>(decoded.imm));
+  std::cout << "Unconditional Jump Instruction" << std::endl;
+  std::uint32_t hardware_pc = read_reg(Register::PC) + 2;
+  write_reg(Register::PC, hardware_pc + static_cast<std::uint32_t>(decoded.imm));
 }
 
 void Cpu::decode_thumb16_push_misc_group(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 9) & 1;
-  
+
   switch(decoded.opcode){
     case 0:
-
-      
 
       decoded.execute = &Cpu::execute_thumb16_push;
       break;
@@ -167,15 +166,11 @@ void Cpu::execute_thumb16_push(const DecodedInstruction& decoded){
 
 }
 
-
-
-
 /* No Operation - NOP instruction */
 
 void Cpu::decode_nop(DecodedInstruction& decoded){
-  cout << "NOP - No Operation :D" << endl;
+  std::cout << "NOP - No Operation :D" << std::endl;
 }
-
 
 /*
  * I have an instruction : 0x2003 movs r0, #3
@@ -183,7 +178,5 @@ void Cpu::decode_nop(DecodedInstruction& decoded){
  * 0010 0000 0000 0011; to get the opcode, shift >> 10 & 0x1f; this becomes 0000 0000 0000 1000
  * using that number, I use that as an index so instr_arr[0b00100] = &movs_instr_handler.
  *
- * Here it 
+ * Here it
  */
-
-

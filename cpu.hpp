@@ -6,7 +6,7 @@
 
 class Memory;
 
-class Cpu{
+class Cpu(){
   public:
 
     static constexpr uint32_t NEGATIVE_FLAG_MASK   = 1U << 31; /* N flag */
@@ -36,7 +36,7 @@ class Cpu{
       uint8_t size;
     };
 
-    explicit Cpu();
+    explicit Cpu(uint32_t msp, uint32_t rhand_addr);
     
     inline uint32_t read_reg(Register reg) const{
       return regs_[static_cast<size_t>(reg)];
