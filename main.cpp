@@ -44,6 +44,7 @@ int main(int argc, char *argv[] ){
 
   // Initialize cpu
   Cpu cpu(memory.read_32bit(0), memory.read_32bit(4));
+  cpu.reset();
 
   while(cpu.read_reg(Cpu::Register::PC) < static_cast<uint32_t>(binfile.get_file_size())){
     cpu.cycle(memory);

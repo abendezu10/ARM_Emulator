@@ -7,14 +7,12 @@
 #include <bitset>
 #include <cstdint>
 #include <cstddef>
+#include <stdexcept>
 
 #include "cpu.hpp"
 #include "memory.hpp"
 
-Cpu::Cpu(uint32_t msp, uint32_t rhand_addr){
-  
-  regs_[static_cast<std::size_t>(Register::SP)] = msp;
-  regs_[static_cast<std::size_t>(Register::PC)] = rhandler_addr;
+Cpu::Cpu(){
   
   N_flag_ = 0;
   Z_flag_ = 0;
@@ -39,17 +37,22 @@ void Cpu::increment_pc(std::uint8_t instruction_size){
 // of the register
 void Cpu::fetch16(Memory& memory){
   ir_ = static_cast<std::uint32_t>(memory.read_16bit(regs_[static_cast<std::size_t>(Register::PC)]));
-  std::cout << ir_ << std::endl;
   increment_pc(2);
 }
 
+void Cpu::reset(Memory& memory){
+  regs_[static_cast<size_t>(Register::SP)] = memory.read_32bit(0);
+  std::uint32_t reset_hand = memory.read_32bit(4);
+
+  if(!(reset_hand & 0x1)){
+    throw std::runtime_error("thumb state is not on!");
+  }
+  regs_[static_cast<size_t>(Register::PC)] = reset_hand & (~1);
+}
+
+
 void Cpu::cycle(Memory& memory){
-
-  // if(memory == nullptr){
-  //   std::cout << "Memory class not initialized" << std::endl;
-  //   return;
-  // }
-
+  
   Cpu::DecodedInstruction decoded_instr{};
 
   fetch16(memory);

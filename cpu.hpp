@@ -36,7 +36,7 @@ class Cpu(){
       uint8_t size;
     };
 
-    explicit Cpu(uint32_t msp, uint32_t rhand_addr);
+    explicit Cpu();
     
     inline uint32_t read_reg(Register reg) const{
       return regs_[static_cast<size_t>(reg)];
@@ -63,6 +63,8 @@ class Cpu(){
     }
 
     void cycle(Memory& memory);
+
+    void reset(Memory& memory);
 
 
   private:
