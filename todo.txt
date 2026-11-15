@@ -1,0 +1,5 @@
+
+1.) finish incorporating reset logic
+
+
+2.) next is to maybe test or begin the instructions related to SRAM, problem is not sur ehow to test
