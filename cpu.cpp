@@ -23,7 +23,8 @@ Cpu::Cpu(){
   handler_table_.fill(&Cpu::decode_nop);
   this->handler_table_[0b001000] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
   this->handler_table_[0b001001] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
-  this->handler_table_[0b000110] = &Cpu::decode_thumb16_add_sub_group; // 7 opcode bits
+  this->handler_table_[0b000110] = &Cpu::decode_thumb16_add_sub_reg_group; // 7 opcode bits
+  this->handler_table_[0b000111] = &Cpu::decode_thumb16_add_sub_imm_group;
   this->handler_table_[0b111000] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
   this->handler_table_[0b111001] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
   this->handler_table_[0b101101] = &Cpu::decode_thumb16_push_misc_group; // 7 opcode bits
@@ -41,13 +42,13 @@ void Cpu::fetch16(Memory& memory){
 }
 
 void Cpu::reset(Memory& memory){
-  regs_[static_cast<size_t>(Register::SP)] = memory.read_32bit(0);
-  std::uint32_t reset_hand = memory.read_32bit(4);
+  regs_[static_cast<std::size_t>(Register::SP)] = memory.read_32bit(0); // stores first val in vector table to SP
+  std::uint32_t reset_hand = memory.read_32bit(4); // retrieves reset_hand & 1
 
   if(!(reset_hand & 0x1)){
     throw std::runtime_error("thumb state is not on!");
   }
-  regs_[static_cast<size_t>(Register::PC)] = reset_hand & (~1);
+  regs_[static_cast<std::size_t>(Register::PC)] = reset_hand & (~1);
 }
 
 
@@ -56,8 +57,18 @@ void Cpu::cycle(Memory& memory){
   Cpu::DecodedInstruction decoded_instr{};
 
   fetch16(memory);
+  std::uint8_t handler_id = static_cast<std::uint8_t>((ir_ >> 10) & 0x3f);
+  std::cout << "Handler_id: " << std::bitset<8>(handler_id) << std::endl;
 
-  decode_instruction(decoded_instr);
+  if(handler_id >= 0b111010){
+    // this is a 32 bit instruction and first it fetches 16 bit then fetches other half word if it has this prefix
+    ir_ |= static_cast<std::uint32_t>(memory.read_16bit(regs_[static_cast<std::size_t>(Register::PC)])) << 16;
+    increment_pc(2);
+    // A 32 bit instr is laid out on memory as follow AB CD EF GH, then when fetched into ir_ it needs to be 
+    // GH EF CD AB 
+  }
+
+  decode_instruction(decoded_instr, handler_id);
 
   if(decoded_instr.execute == nullptr){
     std::cout << "No Operation; No assigned execution handler!" << std::endl;
@@ -68,13 +79,7 @@ void Cpu::cycle(Memory& memory){
   (this->*execute)(decoded_instr);
 }
 
-void Cpu::decode_instruction(DecodedInstruction& decoded){
-  std::uint8_t handler_id = static_cast<std::uint8_t>((ir_ >> 10) & 0x3f);
-  std::cout << "Handler_id: " << std::bitset<8>(handler_id) << std::endl;
-
-  if(handler_id >= 0b111010){
-    // this is a 32 bit instruction and first it fetches 16 bit then fetches other half word if it has this prefix
-  }
+void Cpu::decode_instruction(DecodedInstruction& decoded, uint8_t handler_id){
 
   DecodeHandler handler = this->handler_table_[handler_id];
   (this->*handler)(decoded);
@@ -95,12 +100,13 @@ void Cpu::execute_thumb16_movs_imm(const DecodedInstruction& decoded){
   write_reg(decoded.rd, decoded.imm);
 }
 
-void Cpu::decode_thumb16_add_sub_group(DecodedInstruction& decoded){
+/* adds Rd, Rn, Rm */ 
+void Cpu::decode_thumb16_add_sub_reg_group(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 9) & 1;
 
-  decoded.rd = static_cast<Register>(ir_ & 0xff);
-  decoded.rn = static_cast<Register>((ir_ >> 3) & 0xff);
-  decoded.rm = static_cast<Register>((ir_ >> 6) & 0xff);
+  decoded.rd = static_cast<Register>(ir_ & 0x7);
+  decoded.rn = static_cast<Register>((ir_ >> 3) & 0x7);
+  decoded.rm = static_cast<Register>((ir_ >> 6) & 0x7);
   decoded.size = 2;
 
   switch(decoded.opcode){
@@ -131,12 +137,11 @@ void Cpu::execute_thumb16_sub_regs(const DecodedInstruction& decoded){
   write_reg(decoded.rd, read_reg(decoded.rn) - read_reg(decoded.rm));
 }
 
+// B label: 11100 | imm11, where branch offset = sign_extend(imm11 << 1)
 void Cpu::decode_thumb16_uncond_branch(DecodedInstruction& decoded){
-
-  decoded.opcode = (ir_ >> 11) & 0xff;
-
-  std::int8_t offset = static_cast<std::int8_t>(ir_ & 0xff);
-  decoded.imm = static_cast<std::int32_t>(offset) * 2;
+  decoded.opcode = (ir_ >> 11) & 0x1f;
+  decoded.imm = ir_ & 0x7ff;
+  decoded.imm <<= 1;
   decoded.execute = &Cpu::execute_thumb16_uncond_branch;
   decoded.size = 2;
 }

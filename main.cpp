@@ -44,7 +44,7 @@ int main(int argc, char *argv[] ){
 
   // Initialize cpu
   Cpu cpu();
-  cpu.reset();
+  cpu.reset(memory);
 
   while(1){
     cpu.cycle(memory);

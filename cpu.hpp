@@ -74,7 +74,7 @@ class Cpu(){
     uint32_t ir_{0};
 
     inline void write_reg(Register reg, uint32_t value){ 
-      regs_[static_cast<size_t>(reg)] = value;
+    regs_[static_cast<size_t>(reg)] = value;
     }
 
     inline void set_negative_flag(){
@@ -126,7 +126,7 @@ class Cpu(){
     void decode_thumb16_movs_imm(DecodedInstruction& decoded);
     void execute_thumb16_movs_imm(const DecodedInstruction& decoded);
 
-    void decode_thumb16_add_sub_group(DecodedInstruction& decoded);
+    void decode_thumb16_add_sub_reg_group(DecodedInstruction& decoded);
     void execute_thumb16_add_regs(const DecodedInstruction& decoded);
     void execute_thumb16_sub_regs(const DecodedInstruction& decoded);
 
