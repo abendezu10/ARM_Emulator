@@ -3,6 +3,8 @@
 #include <string>
 #include <filesystem>
 #include <vector>
+#include <thread>
+#include <chrono>
 #include <iomanip>
 
 #include "bin_file.hpp"
@@ -46,11 +48,15 @@ int main(int argc, char *argv[] ){
   Cpu cpu;
   cpu.reset(memory);
 
-  std::size_t i = 32;
-  while(i--){
+  // memory.print_memory("FLASH");
+  while(1){
     cpu.cycle(memory);
+
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(1000)
+    );
   }
-  
+
   
   //cout << "PC = 0x" << hex << setw(8) << setfill('0') << memory.read_16bit(0) << '\n';
   return 0;

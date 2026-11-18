@@ -30,11 +30,12 @@ class Cpu{
       std::uint32_t opcode;
       std::int16_t imm;
       std::uint16_t reg_list;
+      std::string instr;
       Register rd;
       Register rm;
       Register rn;
       ExecuteHandler execute;
-      std::uint8_t size; // instruction_size in bytes
+      std::size_t size; // instruction_size in bytes
     };
 
     explicit Cpu();
@@ -43,24 +44,24 @@ class Cpu{
       return regs_[static_cast<size_t>(reg)];
     }
 
-    inline uint8_t read_negative_flag() const{
-      return static_cast<uint8_t>(((flags_ & NEGATIVE_FLAG_MASK) >> 31));
+    inline bool read_negative_flag() const{
+      return flags_ & NEGATIVE_FLAG_MASK;
     }
 
-    inline uint8_t read_zero_flag() const{
-      return static_cast<uint8_t>(((flags_ & ZERO_FLAG_MASK) >> 30));
+    inline bool read_zero_flag() const{
+      return flags_ & ZERO_FLAG_MASK;
     }
 
-    inline uint8_t read_carry_flag() const{
-      return static_cast<uint8_t>(((flags_ & CARRY_FLAG_MASK) >> 29));
+    inline bool read_carry_flag() const{
+      return flags_ & CARRY_FLAG_MASK;
     }
 
-    inline uint8_t read_overflow_flag() const{
-      return static_cast<uint8_t>(((flags_ & OVERFLOW_FLAG_MASK) >> 28));
+    inline bool read_overflow_flag() const{
+      return flags_ & OVERFLOW_FLAG_MASK; 
     }
 
-    inline uint8_t read_saturation_flag() const{
-      return static_cast<uint8_t>(((flags_ & SATURATION_FLAG_MASK) >> 27));
+    inline bool read_saturation_flag() const{
+      return flags_ & SATURATION_FLAG_MASK;
     }
 
     void cycle(Memory& memory);
@@ -154,6 +155,8 @@ class Cpu{
     void execute_thumb16_push(const DecodedInstruction& decoded, Memory& memory);
 
     void decode_nop(DecodedInstruction& decoded);
+
+    void cpu_state(void) const;
 
 
 };

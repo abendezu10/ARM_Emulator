@@ -26,8 +26,7 @@ void debug_access(const char* operation,
                   std::uint32_t value,
                   int bits)
 {
-  std::cout
-      << "[MEM] "
+  std::cout << "[MEM] "
       << operation
       << " " << bits << "-bit"
       << " | region=" << region
@@ -44,6 +43,17 @@ void debug_access(const char* operation,
       << std::endl;
 }
 
+}
+
+void Flash::print_memory(void) const{
+  for(size_t i = 0; i <= used_size_; i++){
+    std::cout << "[FLASH] The byte at 0x" 
+              << std::hex 
+              << (0x08000000 + i)
+              << ": 0x"
+              << static_cast<unsigned int>(mem_[i])
+              << "\n";
+  }
 }
 
 std::uint8_t Flash::read_8bit(std::uint32_t offset){
@@ -79,8 +89,19 @@ void Flash::set_size(std::size_t size){
   used_size_ = size;
 }
 
+void SRAM::print_memory(void) const{
+  for(std::size_t i; i < used_size_; i++){
+    std::cout << "[SRAM] The byte at 0x" 
+              << std::hex 
+              << (0x20017fff - i)  
+              << ": 0x" 
+              << static_cast<unsigned int>(mem_[i]) 
+              << "\n";
+  }
+}
+
 std::uint8_t SRAM::read_8bit(std::uint32_t offset){
-  std::uint32_t addr_i = 0x2001ffff - offset;
+  std::uint32_t addr_i = 0x20017fff - offset;
   std::cout << "The 8-bit value is: 0x"
           << std::hex
           << static_cast<unsigned int>(mem_[addr_i])
@@ -103,7 +124,7 @@ std::uint16_t SRAM::read_16bit(std::uint32_t offset){
 }
 
 std::uint32_t SRAM::read_32bit(std::uint32_t offset){
-  std::uint32_t addr_i = 0x2001ffff - offset;
+  std::uint32_t addr_i = 0x20017fff - offset;
   std::uint32_t fullword = (mem_[addr_i + 3] << 24) | 
                            (mem_[addr_i + 2] << 16) |
                            (mem_[addr_i + 1] << 8)  |
@@ -117,18 +138,18 @@ std::uint32_t SRAM::read_32bit(std::uint32_t offset){
 }
 
 void SRAM::write_8bit(std::uint32_t offset, std::uint8_t value){
-  std::uint32_t addr_i = 0x2001ffff - offset;
+  std::uint32_t addr_i = 0x20017fff - offset;
   mem_[addr_i] = value;
 }
 
 void SRAM::write_16bit(std::uint32_t offset, std::uint16_t value){
-  std::uint32_t addr_i = 0x2001ffff - offset;
+  std::uint32_t addr_i = 0x20017fff - offset;
   mem_[addr_i] = static_cast<std::uint8_t>((value >> 8) & 0xff);
   mem_[addr_i + 1] = static_cast<std::uint8_t>(value & 0xff);
 }
 
 void SRAM::write_32bit(std::uint32_t offset, std::uint32_t value){
-  std::uint32_t addr_i = 0x2001ffff - offset;
+  std::uint32_t addr_i = 0x20017fff - offset;
 
   mem_[addr_i] = static_cast<std::uint8_t>((value >> 24) & 0xff);
   mem_[addr_i + 1] = static_cast<std::uint8_t>((value >> 16) & 0xff);
@@ -250,10 +271,25 @@ void Memory::write_32bit(std::uint32_t addr, std::uint32_t value){
     throw std::out_of_range("SRAM write address out of range for 32-bit value");
 }
 
+std::size_t Memory::get_size(std::string region) const{
+  std::size_t used_size = 0;
+  if(region == "FLASH"){
+    used_size = flash_.get_size();
+  } else if (region == "SRAM"){
+    used_size = 0;
+  }
+  return used_size;
+}
 
-void Memory::print_memory() const{
-    std::cout << "The bytes are:\n";
 
+void Memory::print_memory(std::string region) const{
+
+  if(region == "FLASH"){
+    // print flash memory
+    flash_.print_memory();
+  }else if(region == "SRAM"){
+    sram_.print_memory();
+  }
     // for (std::size_t i = 0; i < memory_.size(); ++i) {
     //     std::cout
     //         << "0x"
@@ -264,5 +300,4 @@ void Memory::print_memory() const{
     //         << '\n';
     // }
 
-    std::cout << std::dec;
 }

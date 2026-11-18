@@ -33,7 +33,8 @@ class Flash{
 
     std::size_t get_size(void) const;
     void set_size(std::size_t size);
-    void print_memory() const;
+
+    void print_memory(void) const;
 
 };
 
@@ -52,7 +53,7 @@ class SRAM{
     void write_32bit(std::uint32_t offset, std::uint32_t value);
     
     //potential increment or decrement 
-    void print_memory() const;
+    void print_memory(void) const;
 };
 
 
@@ -68,7 +69,8 @@ class Memory{
     void write_16bit(std::uint32_t addr, std::uint16_t value);
     void write_32bit(std::uint32_t addr, std::uint32_t value);
 
-    void print_memory() const;
+    void print_memory(std::string region) const;
+    std::size_t get_size(std::string region) const;
 
 
   private:
