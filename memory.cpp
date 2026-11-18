@@ -18,6 +18,34 @@
  *
  */
 
+namespace {
+
+void debug_access(const char* operation,
+                  const char* region,
+                  std::uint32_t addr,
+                  std::uint32_t value,
+                  int bits)
+{
+  std::cout
+      << "[MEM] "
+      << operation
+      << " " << bits << "-bit"
+      << " | region=" << region
+      << " | addr=0x"
+      << std::hex
+      << std::setw(8)
+      << std::setfill('0')
+      << addr
+      << " | value=0x"
+      << std::setw(bits / 4)
+      << value
+      << std::dec
+      << std::setfill(' ')
+      << std::endl;
+}
+
+}
+
 std::uint8_t Flash::read_8bit(std::uint32_t offset){
   std::uint32_t addr_i = offset - 0x08000000;
   return mem_[addr_i];
@@ -53,6 +81,12 @@ void Flash::set_size(std::size_t size){
 
 std::uint8_t SRAM::read_8bit(std::uint32_t offset){
   std::uint32_t addr_i = 0x2001ffff - offset;
+  std::cout << "The 8-bit value is: 0x"
+          << std::hex
+          << static_cast<unsigned int>(mem_[addr_i])
+          << std::dec
+          << std::endl;
+
   return mem_[addr_i];
 }
 
@@ -60,6 +94,11 @@ std::uint16_t SRAM::read_16bit(std::uint32_t offset){
   std::uint32_t addr_i = offset - 0x08000000;
   std::uint16_t halfword = (mem_[addr_i + 1] << 8) |
                       (mem_[addr_i]);
+  std::cout << "The 8-bit value is: 0x"
+          << std::hex
+          << static_cast<unsigned int>(halfword)
+          << std::dec
+          << std::endl;
   return halfword;
 }
 
@@ -69,6 +108,11 @@ std::uint32_t SRAM::read_32bit(std::uint32_t offset){
                            (mem_[addr_i + 2] << 16) |
                            (mem_[addr_i + 1] << 8)  |
                            (mem_[addr_i]);
+  std::cout << "The 8-bit value is: 0x"
+          << std::hex
+          << static_cast<unsigned int>(fullword)
+          << std::dec
+          << std::endl;
   return fullword;
 }
 
@@ -108,15 +152,34 @@ Memory::Memory(BinFile& binfile){
     index++;
   }
   flash_.set_size(index);
-  
+
+  std::cout
+      << "[FLASH] Loaded "
+      << index
+      << " bytes";
+
+  if(index > 0){
+    std::cout
+        << " | range=0x08000000-0x"
+        << std::hex
+        << (0x08000000 + index - 1)
+        << std::dec;
+  }
+
+  std::cout << std::endl;
+
 }
 
 std::uint8_t Memory::read_8bit(std::uint32_t addr){
   uint8_t byte = 0;
-  if(addr <= 0x0807ffff && addr >= 0x08000000)
+  if(addr <= 0x0807ffff && addr >= 0x08000000){
     byte = flash_.read_8bit(addr);
-  else if(addr >= 0x20000000 && addr <= 0x20017fff)
+    debug_access("READ", "FLASH", addr, byte, 8);
+  }
+  else if(addr >= 0x20000000 && addr <= 0x20017fff){
     byte = sram_.read_8bit(addr);
+    debug_access("READ", "SRAM", addr, byte, 8);
+  }
   else 
     throw std::out_of_range("8-bit read is not in SRAM or Flash.");
 
@@ -125,12 +188,14 @@ std::uint8_t Memory::read_8bit(std::uint32_t addr){
 
 std::uint16_t Memory::read_16bit(std::uint32_t addr){
   uint16_t halfword = 0;
-  
+
   if(addr <= 0x0807ffff && addr >= 0x08000000){
     halfword = flash_.read_16bit(addr);
+    debug_access("READ", "FLASH", addr, halfword, 16);
   }else if(addr >= 0x20000000 && addr <= 0x20017fff){
     // use sram object
     halfword = sram_.read_16bit(addr);
+    debug_access("READ", "SRAM", addr, halfword, 16);
   }else {
     throw std::out_of_range("16-bit read is not in SRAM or Flash.");
   }
@@ -142,35 +207,45 @@ std::uint32_t Memory::read_32bit(std::uint32_t addr){
   uint32_t fullword = 0;
 
   if(addr == 0){
-    fullword = flash_.read_32bit(0x08000000); 
+    fullword = flash_.read_32bit(0x08000000);
+    debug_access("RESET READ", "FLASH_ALIAS", addr, fullword, 32);
   }else if(addr == 4){
     fullword = flash_.read_32bit(0x08000004);
-  }else{
+    debug_access("RESET READ", "FLASH_ALIAS", addr, fullword, 32);
+  }else if(addr <= 0x0807ffff && addr >= 0x08000000){
+    fullword = flash_.read_32bit(addr);
+  } else {
     throw std::invalid_argument("Using 32-bit read operation only is done for the first two entries in the vector table.");
   }
   return fullword;
 }
 
 void Memory::write_8bit(std::uint32_t addr, std::uint8_t value){
-  
- if(addr >= 0x20000000 && addr <= 0x20017fff)
+
+ if(addr >= 0x20000000 && addr <= 0x20017fff){
+    debug_access("WRITE", "SRAM", addr, value, 8);
     sram_.write_8bit(addr, value);
+ }
  else 
    throw std::out_of_range("SRAM write address out of range for 8-bit value");
 }
 
 void Memory::write_16bit(std::uint32_t addr, std::uint16_t value){
 
-  if(addr >= 0x20000000 && addr <= 0x20017fff)
+  if(addr >= 0x20000000 && addr <= 0x20017fff){
+    debug_access("WRITE", "SRAM", addr, value, 16);
     sram_.write_16bit(addr, value);
+  }
   else 
     throw std::out_of_range("SRAM write address out of range for 16-bit value");
 }
 
 
 void Memory::write_32bit(std::uint32_t addr, std::uint32_t value){
-  if(addr >= 0x20000000 && addr <= 0x20017fff)
+  if(addr >= 0x20000000 && addr <= 0x20017fff){
+    debug_access("WRITE", "SRAM", addr, value, 32);
     sram_.write_32bit(addr, value);
+  }
   else
     throw std::out_of_range("SRAM write address out of range for 32-bit value");
 }

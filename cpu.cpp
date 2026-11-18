@@ -17,6 +17,8 @@ Cpu::Cpu(){
   handler_table_.fill(&Cpu::decode_nop);
   this->handler_table_[0b001000] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
   this->handler_table_[0b001001] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
+  this->handler_table_[0b010010] = &Cpu::decode_thumb16_ldr_literal;
+  this->handler_table_[0b010011] = &Cpu::decode_thumb16_ldr_literal;
   this->handler_table_[0b000110] = &Cpu::decode_thumb16_adds_subs_reg_group;
   this->handler_table_[0b000111] = &Cpu::decode_thumb16_adds_subs_reg_group;
   this->handler_table_[0b001100] = &Cpu::decode_thumb16_adds_imm;
@@ -30,6 +32,14 @@ Cpu::Cpu(){
 
 void Cpu::increment_pc(std::uint8_t instruction_size){
   regs_[static_cast<std::size_t>(Register::PC)] += instruction_size;
+}
+
+void Cpu::increment_sp(std::uint8_t bytes){
+  regs_[static_cast<std::size_t>(Register::SP)] += bytes;
+}
+
+void Cpu::decrement_sp(std::uint8_t bytes){
+  regs_[static_cast<std::size_t>(Register::SP)] -= bytes;
 }
 
 // A bug here so when it is 32 bit instruction it will overwrite the first [15:0] bits instead of filling the rest
@@ -55,7 +65,8 @@ void Cpu::cycle(Memory& memory){
   Cpu::DecodedInstruction decoded_instr{};
 
   fetch16(memory);
-  std::uint8_t handler_id = static_cast<std::uint8_t>((ir_ >> 10) & 0x3f);
+  //wrong
+  std::uint8_t handler_id = static_cast<std::uint8_t>((ir_ >> 1) & 0x3f);
   std::cout << "Handler_id: " << std::bitset<8>(handler_id) << std::endl;
 
   if(handler_id >= 0b111010){
@@ -74,7 +85,7 @@ void Cpu::cycle(Memory& memory){
   }
 
   ExecuteHandler execute = decoded_instr.execute;
-  (this->*execute)(decoded_instr);
+  (this->*execute)(decoded_instr, memory);
 }
 
 void Cpu::decode_instruction(DecodedInstruction& decoded, uint8_t handler_id){
@@ -92,18 +103,34 @@ void Cpu::decode_thumb16_movs_imm(DecodedInstruction& decoded){
   decoded.size = 2;
 }
 
-void Cpu::execute_thumb16_movs_imm(const DecodedInstruction& decoded){
+void Cpu::execute_thumb16_movs_imm(const DecodedInstruction& decoded, Memory& memory){
   std::cout << "MOVS instruction" << std::endl;
   write_reg(decoded.rd, decoded.imm);
+}
+
+void Cpu::decode_thumb16_ldr_literal(DecodedInstruction& decoded){
+  decoded.opcode = (ir_ >> 11) & 0x1f;
+  decoded.imm = ir_ & 0xff;
+  decoded.rd = static_cast<Register>((ir_ >> 8) & 0x7);
+  decoded.execute = &Cpu::execute_thumb16_ldr_literal;
+  decoded.size = 2;
+}
+
+void Cpu::execute_thumb16_ldr_literal(const DecodedInstruction& decoded, Memory& memory){
+  uint32_t temp_pc = regs_[static_cast<size_t>(Register::PC)] + 2;
+  /* alignment operation */
+  temp_pc &= ~0x3U;
+  temp_pc += decoded.imm * 4;
+  write_reg(decoded.rd, memory.read_32bit(temp_pc));
 }
 
 /* adds Rd, Rn, Rm */ 
 void Cpu::decode_thumb16_adds_subs_reg_group(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 9) & 1;
 
-  decoded.rd = static_cast<Register>(ir_ & 0x7);
-  decoded.rn = static_cast<Register>((ir_ >> 3) & 0x7);
-  decoded.rm = static_cast<Register>((ir_ >> 6) & 0x7);
+  decoded.rd = static_cast<Register>(ir_ & 0x7U);
+  decoded.rn = static_cast<Register>((ir_ >> 3U) & 0x7U);
+  decoded.rm = static_cast<Register>((ir_ >> 6U) & 0x7U);
   decoded.size = 2;
 
   switch(decoded.opcode){
@@ -117,7 +144,7 @@ void Cpu::decode_thumb16_adds_subs_reg_group(DecodedInstruction& decoded){
   };
 }
 
-void Cpu::execute_thumb16_adds_regs(const DecodedInstruction& decoded){
+void Cpu::execute_thumb16_adds_regs(const DecodedInstruction& decoded, Memory& memory){
   std::cout << "ADDS instruction" << std::endl;
   std::uint64_t sum = static_cast<std::uint64_t>(read_reg(decoded.rm)) + static_cast<std::uint64_t>(read_reg(decoded.rn));
 
@@ -129,7 +156,7 @@ void Cpu::execute_thumb16_adds_regs(const DecodedInstruction& decoded){
   write_reg(decoded.rd, sum);
 }
 
-void Cpu::execute_thumb16_subs_regs(const DecodedInstruction& decoded){
+void Cpu::execute_thumb16_subs_regs(const DecodedInstruction& decoded, Memory& memory){
   std::cout << "SUBS instruction" << std::endl;
   write_reg(decoded.rd, read_reg(decoded.rn) - read_reg(decoded.rm));
 }
@@ -143,7 +170,7 @@ void Cpu::decode_thumb16_adds_imm(DecodedInstruction& decoded){
   decoded.size = 2;
 }
 
-void Cpu::execute_thumb16_adds_imm(const DecodedInstruction& decoded){
+void Cpu::execute_thumb16_adds_imm(const DecodedInstruction& decoded, Memory& memory){
   write_reg(decoded.rd, read_reg(decoded.rd) + decoded.imm);
 }
 
@@ -155,7 +182,7 @@ void Cpu::decode_thumb16_subs_imm(DecodedInstruction& decoded){
   decoded.size = 2;
 }
 
-void Cpu::execute_thumb16_subs_imm(const DecodedInstruction& decoded){
+void Cpu::execute_thumb16_subs_imm(const DecodedInstruction& decoded, Memory& memory){
   write_reg(decoded.rd, read_reg(decoded.rd) + decoded.imm);
 }
 
@@ -170,7 +197,7 @@ void Cpu::decode_thumb16_uncond_branch(DecodedInstruction& decoded){
   decoded.size = 2;
 }
 
-void Cpu::execute_thumb16_uncond_branch(const DecodedInstruction& decoded){
+void Cpu::execute_thumb16_uncond_branch(const DecodedInstruction& decoded, Memory& memory){
   /* Based on CPU pipeline of the ARM architecture, the hardware_pc and emulator_pc (apart of the regs_)
    * are different values so i just used a simple hardware_pc to simulate that
    */
@@ -192,20 +219,26 @@ void Cpu::decode_thumb16_push_misc_group(DecodedInstruction& decoded){
       break;
 
     case 1:
-      cout << "Undefined!" << endl;
+      std::cout << "Undefined!" << std::endl;
       break;
   };
 }
 
 //complete push
-void Cpu::execute_thumb16_push(const DecodedInstruction& decoded){
+void Cpu::execute_thumb16_push(const DecodedInstruction& decoded, Memory& memory){
 
   if((decoded.reg_list >> 14) & 1){
-    sram_.write_32bit(regs_[static_cast<std::size_t>(Register::SP]), regs_[static_cast<std::size_t>(Register::LR)]);
+    memory.write_32bit(regs_[static_cast<std::size_t>(Register::SP)], regs_[static_cast<std::size_t>(Register::LR)]);
+    decrement_sp(4);
   }
 
-  
-
+  for(int i = 7; i >=0; i--){
+    std::uint8_t push_reg = (decoded.reg_list >> i) & 0x1;
+    if(push_reg){
+      memory.write_32bit(regs_[static_cast<size_t>(Register::SP)], regs_[i]);
+      decrement_sp(4);
+    }
+  }
 }
 
 /* No Operation - NOP instruction */

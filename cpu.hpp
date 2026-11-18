@@ -23,7 +23,7 @@ class Cpu{
     struct DecodedInstruction;
 
     using DecodeHandler = void (Cpu::*)(DecodedInstruction&);
-    using ExecuteHandler = void (Cpu::*)(const DecodedInstruction& decoded);
+    using ExecuteHandler = void (Cpu::*)(const DecodedInstruction&, Memory&);
 
     
     struct DecodedInstruction{
@@ -119,33 +119,39 @@ class Cpu{
       flags_ &= ~SATURATION_FLAG_MASK;
     }
     
-    void increment_pc(uint8_t instruction_size);
+    void increment_pc(std::uint8_t instruction_size);
+
+    void increment_sp(std::uint8_t bytes);
+    void decrement_sp(std::uint8_t bytes);
     
     void fetch16(Memory& memory);
     void decode_instruction(DecodedInstruction& decoded, std::uint8_t handler_id);
     
     /* movs rd, imm */
     void decode_thumb16_movs_imm(DecodedInstruction& decoded);
-    void execute_thumb16_movs_imm(const DecodedInstruction& decoded);
+    void execute_thumb16_movs_imm(const DecodedInstruction& decoded, Memory& memory);
+
+    void decode_thumb16_ldr_literal(DecodedInstruction& decoded);
+    void execute_thumb16_ldr_literal(const DecodedInstruction& decoded, Memory& memory);
 
     /* adds Rd, Ra, Rb | subs Rd, Ra, Rb - seems right!*/
     void decode_thumb16_adds_subs_reg_group(DecodedInstruction& decoded);
-    void execute_thumb16_adds_regs(const DecodedInstruction& decoded);
-    void execute_thumb16_subs_regs(const DecodedInstruction& decoded);
+    void execute_thumb16_adds_regs(const DecodedInstruction& decoded, Memory& memory);
+    void execute_thumb16_subs_regs(const DecodedInstruction& decoded, Memory& memory);
 
     /* adds Rd, #imm */
     void decode_thumb16_adds_imm(DecodedInstruction& decoded);
-    void execute_thumb16_adds_imm(const DecodedInstruction& decoded);
-
+    void execute_thumb16_adds_imm(const DecodedInstruction& decoded, Memory& memory);
+    
     /* subs Rd, #imm */
     void decode_thumb16_subs_imm(DecodedInstruction& decoded);
-    void execute_thumb16_subs_imm(const DecodedInstruction& decoded);
+    void execute_thumb16_subs_imm(const DecodedInstruction& decoded, Memory& memory);
 
     void decode_thumb16_uncond_branch(DecodedInstruction& decoded);
-    void execute_thumb16_uncond_branch(const DecodedInstruction& decoded);
+    void execute_thumb16_uncond_branch(const DecodedInstruction& decoded, Memory& memory);
     
     void decode_thumb16_push_misc_group(DecodedInstruction& decoded);
-    void execute_thumb16_push(const DecodedInstruction& decoded);
+    void execute_thumb16_push(const DecodedInstruction& decoded, Memory& memory);
 
     void decode_nop(DecodedInstruction& decoded);
 
