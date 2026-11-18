@@ -154,6 +154,10 @@ class Cpu{
     void decode_thumb16_push_misc_group(DecodedInstruction& decoded);
     void execute_thumb16_push(const DecodedInstruction& decoded, Memory& memory);
 
+    void decode_thumb16_data_processing_reg(DecodedInstruction& decoded);
+    void execute_thumb16_data_processing_cmp(const DecodedInstruction& decoded, Memory& memory);
+
+
     void decode_nop(DecodedInstruction& decoded);
 
     void cpu_state(void) const;

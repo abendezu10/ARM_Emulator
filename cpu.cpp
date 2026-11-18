@@ -48,6 +48,8 @@ Cpu::Cpu(){
   this->handler_table_[0b111000] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
   this->handler_table_[0b111001] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
   this->handler_table_[0b101101] = &Cpu::decode_thumb16_push_misc_group; // 7 opcode bits
+  this->handler_table_[0b010000] = &Cpu::decode_thumb16_data_processing_reg;
+;
 }
 
 void Cpu::increment_pc(std::uint8_t instruction_size){
@@ -77,6 +79,7 @@ void Cpu::reset(Memory& memory){
     throw std::runtime_error("thumb state is not on!");
   }
   regs_[static_cast<std::size_t>(Register::PC)] = reset_hand & (~1);
+  cpu_state();
 }
 
 
@@ -270,12 +273,65 @@ void Cpu::execute_thumb16_push(const DecodedInstruction& decoded, Memory& memory
   }
 }
 
+
+void decode_thumb16_data_processing_reg(DecodedInstruction& decoded){
+  decoded.opcode = (ir_ >> 9) & 0x3fU;
+  decoded.rm = (ir_ >> 3) & 0x7U;
+  decoded.rn = ir_ & 0x7U;
+  decoded.size = 16;
+  uint8_t op = (ir_ >> 6) & 0xfU;
+
+  switch (op) {
+    0b1010 : decoded.instr = "cmp Rn, Rm";
+             decoded.execute = &execute_thumb16_data_processing_cmp;
+             break;
+      
+    default: 
+      break;
+  }
+
+}
+
+void execute_thumb16_data_processing_cmp(const DecodedInstruction& decoded, Memory& memory){
+  uint32_t diff = read_reg(decoded.rn) - read_reg(decoded.rm);
+
+  if((diff >> 31) & 0x1U)
+    set_negative_flag
+
+  if(diff == 0)
+    set_zero_flag();
+
+  if((~read_reg(decoded.rn)) & read_reg(decoded.rm))
+    set_carry_flag;
+
+  if()
+    set_overflow_flag;
+
+  if()
+    set_sat_flag;
+  
+
+}
+
 /* No Operation - NOP instruction */
 
 void Cpu::decode_nop(DecodedInstruction& decoded){
   decoded.instr = "nop";
   decoded.size = 32;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void Cpu::cpu_state() const {
 

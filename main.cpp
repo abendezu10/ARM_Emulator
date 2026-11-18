@@ -47,7 +47,6 @@ int main(int argc, char *argv[] ){
   // Initialize cpu
   Cpu cpu;
   cpu.reset(memory);
-
   // memory.print_memory("FLASH");
   while(1){
     cpu.cycle(memory);
