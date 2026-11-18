@@ -26,9 +26,13 @@ class Flash{
 
   public:
     std::uint8_t  read_8bit(std::uint32_t offset);
-    std::uint8_t load_8bit(std::uint32_t offset);
-    std::size_t get_size(void);
-    std::size_t set_size(void);
+    std::uint16_t read_16bit(std::uint32_t offset);
+    std::uint32_t read_32bit(std::uint32_t offset);
+
+    void load_8bit(std::uint32_t offset, std::uint8_t value);
+
+    std::size_t get_size(void) const;
+    void set_size(std::size_t size);
     void print_memory() const;
 
 };
@@ -39,11 +43,17 @@ class SRAM{
     std::size_t used_size_ = 0;
 
   public:
-    std::uint8_t  read_8bit(std::uint32_t addr);
-    void write_8bit(std::uint32_t addr, std::uint8_t value);
+    std::uint8_t read_8bit(std::uint32_t offset);
+    std::uint16_t read_16bit(std::uint32_t offset);
+    std::uint32_t read_32bit(std::uint32_t offset);
+    
+    void write_8bit(std::uint32_t offset, std::uint8_t value);
+    void write_16bit(std::uint32_t offset, std::uint16_t value);
+    void write_32bit(std::uint32_t offset, std::uint32_t value);
+    
     //potential increment or decrement 
     void print_memory() const;
-}
+};
 
 
 class Memory{
@@ -58,7 +68,7 @@ class Memory{
     void write_16bit(std::uint32_t addr, std::uint16_t value);
     void write_32bit(std::uint32_t addr, std::uint32_t value);
 
-  void print_memory() const;
+    void print_memory() const;
 
 
   private:

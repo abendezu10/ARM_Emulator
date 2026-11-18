@@ -6,7 +6,7 @@
 
 class Memory;
 
-class Cpu(){
+class Cpu{
   public:
 
     static constexpr uint32_t NEGATIVE_FLAG_MASK   = 1U << 31; /* N flag */
@@ -15,7 +15,7 @@ class Cpu(){
     static constexpr uint32_t OVERFLOW_FLAG_MASK   = 1U << 28; /* V flag */
     static constexpr uint32_t SATURATION_FLAG_MASK = 1U << 27; /* Q flag */
 
-    enum class Register : uint8_t{
+    enum class Register : std::uint8_t{
       R0, R1, R2, R3, R4, R5, R6, R7,
       R8, R9, R10, R11, R12, SP, LR, PC
     };
@@ -27,13 +27,14 @@ class Cpu(){
 
     
     struct DecodedInstruction{
-      uint32_t opcode;
-      int16_t imm;
+      std::uint32_t opcode;
+      std::int16_t imm;
+      std::uint16_t reg_list;
       Register rd;
       Register rm;
       Register rn;
       ExecuteHandler execute;
-      uint8_t size;
+      std::uint8_t size; // instruction_size in bytes
     };
 
     explicit Cpu();
@@ -68,7 +69,7 @@ class Cpu(){
 
 
   private:
-    uint32_t flags_;
+    uint32_t flags_{};
     std::array<DecodeHandler, 64> handler_table_{};
     std::array<uint32_t, 16> regs_{};
     uint32_t ir_{0};
@@ -121,18 +122,28 @@ class Cpu(){
     void increment_pc(uint8_t instruction_size);
     
     void fetch16(Memory& memory);
-    void decode_instruction(DecodedInstruction& decoded);
+    void decode_instruction(DecodedInstruction& decoded, std::uint8_t handler_id);
     
+    /* movs rd, imm */
     void decode_thumb16_movs_imm(DecodedInstruction& decoded);
     void execute_thumb16_movs_imm(const DecodedInstruction& decoded);
 
-    void decode_thumb16_add_sub_reg_group(DecodedInstruction& decoded);
-    void execute_thumb16_add_regs(const DecodedInstruction& decoded);
-    void execute_thumb16_sub_regs(const DecodedInstruction& decoded);
+    /* adds Rd, Ra, Rb | subs Rd, Ra, Rb - seems right!*/
+    void decode_thumb16_adds_subs_reg_group(DecodedInstruction& decoded);
+    void execute_thumb16_adds_regs(const DecodedInstruction& decoded);
+    void execute_thumb16_subs_regs(const DecodedInstruction& decoded);
+
+    /* adds Rd, #imm */
+    void decode_thumb16_adds_imm(DecodedInstruction& decoded);
+    void execute_thumb16_adds_imm(const DecodedInstruction& decoded);
+
+    /* subs Rd, #imm */
+    void decode_thumb16_subs_imm(DecodedInstruction& decoded);
+    void execute_thumb16_subs_imm(const DecodedInstruction& decoded);
 
     void decode_thumb16_uncond_branch(DecodedInstruction& decoded);
     void execute_thumb16_uncond_branch(const DecodedInstruction& decoded);
-
+    
     void decode_thumb16_push_misc_group(DecodedInstruction& decoded);
     void execute_thumb16_push(const DecodedInstruction& decoded);
 

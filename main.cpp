@@ -43,7 +43,7 @@ int main(int argc, char *argv[] ){
   Memory memory(binfile);
 
   // Initialize cpu
-  Cpu cpu();
+  Cpu cpu;
   cpu.reset(memory);
 
   while(1){
