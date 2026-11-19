@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <functional>
 
+#define SIGN(x) ((x >> 31U) & 0x1U)
+
 class Memory;
 
 class Cpu{
@@ -79,45 +81,39 @@ class Cpu{
     regs_[static_cast<size_t>(reg)] = value;
     }
 
-    inline void set_negative_flag(){
-      flags_ |= NEGATIVE_FLAG_MASK;
+    inline void set_negative_flag(bool value){
+      if(value)
+        flags_ |= NEGATIVE_FLAG_MASK;
+      else
+        flags_ &= ~NEGATIVE_FLAG_MASK;
     }
 
-    inline void clear_negative_flag(){
-      flags_ &= ~NEGATIVE_FLAG_MASK;
+    inline void set_zero_flag(bool value){
+      if(value)
+        flags_ |= ZERO_FLAG_MASK;
+      else
+        flags_ &= ~ZERO_FLAG_MASK;
     }
 
-    inline void set_zero_flag(){
-      flags_ |= ZERO_FLAG_MASK;
+    inline void set_carry_flag(bool value){
+      if(value)
+        flags_ |= CARRY_FLAG_MASK;
+      else
+        flags_ &= ~CARRY_FLAG_MASK;
     }
 
-    inline void clear_zero_flag(){
-      flags_ &= ~ZERO_FLAG_MASK;
+    inline void set_overflow_flag(bool value){
+      if(value)
+        flags_ |= OVERFLOW_FLAG_MASK;
+      else
+        flags_ &= ~OVERFLOW_FLAG_MASK;
     }
 
-    inline void set_carry_flag(){
-      flags_ |= CARRY_FLAG_MASK;
-    }
-
-
-    inline void clear_carry_flag(){
-      flags_ &= ~CARRY_FLAG_MASK;
-    }
-
-    inline void set_overflow_flag(){
-      flags_ |= OVERFLOW_FLAG_MASK;
-    }
-
-    inline void clear_overflow_flag(){
-      flags_ &= ~OVERFLOW_FLAG_MASK; 
-    }
-
-    inline void set_sat_flag(){
-      flags_ |= SATURATION_FLAG_MASK; 
-    }
-
-    inline void clear_sat_flag(){
-      flags_ &= ~SATURATION_FLAG_MASK;
+    inline void set_sat_flag(bool value){
+      if(value)
+        flags_ |= SATURATION_FLAG_MASK;
+      else
+        flags_ |= ~SATURATION_FLAG_MASK;
     }
     
     void increment_pc(std::uint8_t instruction_size);

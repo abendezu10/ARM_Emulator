@@ -173,15 +173,20 @@ void Cpu::decode_thumb16_adds_subs_reg_group(DecodedInstruction& decoded){
 }
 
 void Cpu::execute_thumb16_adds_regs(const DecodedInstruction& decoded, Memory& memory){
-  std::uint64_t sum = static_cast<std::uint64_t>(read_reg(decoded.rm)) + 
-                      static_cast<std::uint64_t>(read_reg(decoded.rn));
+  const std::uint32_t rn = read_reg(decoded.rn);
+  const std::uint32_t rm = read_reg(decoded.rm);
 
-  if((sum >> 32) & 0x1U)
-    set_carry_flag();
-  else
-    clear_carry_flag();
+  const std::uint64_t wide_sum = static_cast<std::uint64_t>(rn) + static_cast<std::uint64_t>(rm);
+  const std::uint32_t result = static_cast<std::uint32_t>(wide_sum);
 
-  write_reg(decoded.rd, sum);
+  set_carry_flag((wide_sum >> 32U) != 0U);
+  set_zero_flag(result == 0U);
+  set_negative_flag(SIGN(result) != 0U);
+
+  const bool overflow = (SIGN(rn) == SIGN(rm)) && (SIGN(result) != SIGN(rn));
+  set_overflow_flag(overflow);
+
+  write_reg(decoded.rd, result);
 }
 
 void Cpu::execute_thumb16_subs_regs(const DecodedInstruction& decoded, Memory& memory){
@@ -274,17 +279,18 @@ void Cpu::execute_thumb16_push(const DecodedInstruction& decoded, Memory& memory
 }
 
 
-void decode_thumb16_data_processing_reg(DecodedInstruction& decoded){
+void Cpu::decode_thumb16_data_processing_reg(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 9) & 0x3fU;
-  decoded.rm = (ir_ >> 3) & 0x7U;
-  decoded.rn = ir_ & 0x7U;
+  decoded.rm = static_cast<Register>((ir_ >> 3) & 0x7U);
+  decoded.rn = static_cast<Register>(ir_ & 0x7U);
   decoded.size = 16;
   uint8_t op = (ir_ >> 6) & 0xfU;
 
   switch (op) {
-    0b1010 : decoded.instr = "cmp Rn, Rm";
-             decoded.execute = &execute_thumb16_data_processing_cmp;
-             break;
+    case 0b1010 : 
+      decoded.instr = "cmp Rn, Rm";
+      decoded.execute = &Cpu::execute_thumb16_data_processing_cmp;
+      break;
       
     default: 
       break;
@@ -292,25 +298,18 @@ void decode_thumb16_data_processing_reg(DecodedInstruction& decoded){
 
 }
 
-void execute_thumb16_data_processing_cmp(const DecodedInstruction& decoded, Memory& memory){
-  uint32_t diff = read_reg(decoded.rn) - read_reg(decoded.rm);
+void Cpu::execute_thumb16_data_processing_cmp(const DecodedInstruction& decoded, Memory& memory){
+  const std::uint32_t rn = read_reg(decoded.rn);
+  const std::uint32_t rm = read_reg(decoded.rm);
+  const std::uint32_t result = rn - rm;
 
-  if((diff >> 31) & 0x1U)
-    set_negative_flag
+  set_negative_flag((result >> 31U) != 0U);
+  set_zero_flag(result == 0U);
+  set_carry_flag(rn >= rm);
 
-  if(diff == 0)
-    set_zero_flag();
+  const bool overflow = (SIGN(rn) != SIGN(rm)) && (SIGN(result) != SIGN(rn));
 
-  if((~read_reg(decoded.rn)) & read_reg(decoded.rm))
-    set_carry_flag;
-
-  if()
-    set_overflow_flag;
-
-  if()
-    set_sat_flag;
-  
-
+  set_overflow_flag(overflow);
 }
 
 /* No Operation - NOP instruction */
