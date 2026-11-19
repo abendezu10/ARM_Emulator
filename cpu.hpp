@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <unordered_map>
 
 #define SIGN(x) ((x >> 31U) & 0x1U)
 
@@ -16,6 +17,13 @@ class Cpu{
     static constexpr uint32_t CARRY_FLAG_MASK      = 1U << 29; /* C flag */
     static constexpr uint32_t OVERFLOW_FLAG_MASK   = 1U << 28; /* V flag */
     static constexpr uint32_t SATURATION_FLAG_MASK = 1U << 27; /* Q flag */
+
+    static constexpr std::array<std::string_view, 16> register_names = {
+      "r0", "r1", "r2", "r3",
+      "r4", "r5", "r6", "r7",
+      "r8", "r9", "r10", "r11",
+      "r12", "sp", "lr", "pc"
+    };
 
     enum class Register : std::uint8_t{
       R0, R1, R2, R3, R4, R5, R6, R7,

@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <stdexcept>
+#include <sstream>
 
 #include "cpu.hpp"
 #include "memory.hpp"
@@ -123,12 +124,15 @@ void Cpu::decode_instruction(DecodedInstruction& decoded, uint8_t handler_id){
 /* movs rd, imm - thumb 16-bit instruction */
 void Cpu::decode_thumb16_movs_imm(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 11) & 0x1f;
-  decoded.instr = "movs Rd, imm8";
 
   decoded.imm = ir_ & 0xff;
   decoded.rd = static_cast<Register>((ir_ >> 8) & 0x7);
   decoded.execute = &Cpu::execute_thumb16_movs_imm;
   decoded.size = 16;
+
+  std::ostringstream out;
+  out << "movs " << register_names[static_cast<std::size_t>(decoded.rn)] << ", #0x" << std::hex << static_cast<unsigned int>(decoded.imm);
+  decoded.instr = out.str();
 }
 
 void Cpu::execute_thumb16_movs_imm(const DecodedInstruction& decoded, Memory& memory){
@@ -137,11 +141,15 @@ void Cpu::execute_thumb16_movs_imm(const DecodedInstruction& decoded, Memory& me
 
 void Cpu::decode_thumb16_ldr_literal(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 11) & 0x1f;
-  decoded.instr = "ldr Rt, imm8";
   decoded.imm = ir_ & 0xff;
   decoded.rd = static_cast<Register>((ir_ >> 8) & 0x7);
   decoded.execute = &Cpu::execute_thumb16_ldr_literal;
   decoded.size = 16;
+
+  std::ostringstream out;
+  out << "ldr " << register_names[static_cast<std::size_t>(decoded.rd)] << ", [PC, #0x" 
+      << std::hex << static_cast<unsigned int>(decoded.imm << 2) << "]";
+  decoded.instr = out.str();
 }
 
 void Cpu::execute_thumb16_ldr_literal(const DecodedInstruction& decoded, Memory& memory){
@@ -155,11 +163,15 @@ void Cpu::execute_thumb16_ldr_literal(const DecodedInstruction& decoded, Memory&
 /* adds Rd, Rn, Rm */ 
 void Cpu::decode_thumb16_adds_subs_reg_group(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 9) & 1;
-  decoded.instr = "adds Rd, Rn, Rm";
   decoded.rd = static_cast<Register>(ir_ & 0x7U);
   decoded.rn = static_cast<Register>((ir_ >> 3U) & 0x7U);
   decoded.rm = static_cast<Register>((ir_ >> 6U) & 0x7U);
   decoded.size = 16;
+
+  std::ostringstream out;
+  out << "adds " << register_names[static_cast<std::size_t>(decoded.rd)] << ", " << register_names[static_cast<std::size_t>(decoded.rn)]
+      << ", " << register_names[static_cast<std::size_t>(decoded.rm)];
+  decoded.instr = out.str();
 
   switch(decoded.opcode){
     case 0:
@@ -201,6 +213,10 @@ void Cpu::decode_thumb16_adds_imm(DecodedInstruction& decoded){
   decoded.rd = static_cast<Register>((ir_ >> 8)& 0x7);
   decoded.execute = &Cpu::execute_thumb16_adds_imm;
   decoded.size = 16;
+
+  std::ostringstream out;
+  out << "adds " << register_names[static_cast<std::size_t>(decoded.rd)] << ", #0x" << std::hex << static_cast<unsigned int>(decoded.imm);
+  decoded.instr = out.str();
 }
 
 void Cpu::execute_thumb16_adds_imm(const DecodedInstruction& decoded, Memory& memory){
@@ -209,11 +225,14 @@ void Cpu::execute_thumb16_adds_imm(const DecodedInstruction& decoded, Memory& me
 
 void Cpu::decode_thumb16_subs_imm(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 11) & 0x1f;
-  decoded.instr = "subs Rd, imm8";
   decoded.imm = ir_ & 0xff;
   decoded.rd = static_cast<Register>((ir_ >> 8) & 0x7);
   decoded.execute = &Cpu::execute_thumb16_subs_imm;
   decoded.size = 16;
+
+  std::ostringstream out;
+  out << "subs " << register_names[static_cast<std::size_t>(decoded.rd)] << ", #0x" << std::hex << static_cast<unsigned int>(decoded.imm);
+  decoded.instr = out.str();
 }
 
 void Cpu::execute_thumb16_subs_imm(const DecodedInstruction& decoded, Memory& memory){
@@ -285,10 +304,12 @@ void Cpu::decode_thumb16_data_processing_reg(DecodedInstruction& decoded){
   decoded.rn = static_cast<Register>(ir_ & 0x7U);
   decoded.size = 16;
   uint8_t op = (ir_ >> 6) & 0xfU;
+  std::ostringstream out;
 
   switch (op) {
     case 0b1010 : 
-      decoded.instr = "cmp Rn, Rm";
+      out << "cmp " << register_names[static_cast<std::size_t>(decoded.rn)] << ", " << register_names[static_cast<std::size_t>(decoded.rm)];
+      decoded.instr = out.str();
       decoded.execute = &Cpu::execute_thumb16_data_processing_cmp;
       break;
       
