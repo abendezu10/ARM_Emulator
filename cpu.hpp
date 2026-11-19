@@ -38,7 +38,7 @@ class Cpu{
     
     struct DecodedInstruction{
       std::uint32_t opcode;
-      std::int16_t imm;
+      std::int32_t imm;
       std::uint16_t reg_list;
       std::string instr;
       Register rd;
@@ -161,6 +161,12 @@ class Cpu{
     void decode_thumb16_data_processing_reg(DecodedInstruction& decoded);
     void execute_thumb16_data_processing_cmp(const DecodedInstruction& decoded, Memory& memory);
 
+
+    void decode_thumb16_cond_branch_group(DecodedInstruction& decoded);
+    void execute_thumb16_cond_branch_beq(const DecodedInstruction& decoded, Memory& memory);
+    void execute_thumb16_cond_branch_bne(const DecodedInstruction& decoded, Memory& memory);
+    void execute_thumb16_cond_branch_bcs(const DecodedInstruction& decoded, Memory& memory);
+    void execute_thumb16_cond_branch_bcc(const DecodedInstruction& decoded, Memory& memory);
 
     void decode_nop(DecodedInstruction& decoded);
 

@@ -46,6 +46,7 @@ Cpu::Cpu(){
   this->handler_table_[0b001101] = &Cpu::decode_thumb16_adds_imm;
   this->handler_table_[0b001110] = &Cpu::decode_thumb16_subs_imm;
   this->handler_table_[0b001111] = &Cpu::decode_thumb16_subs_imm;
+  this->handler_table_[0b110100] = &Cpu::decode_thumb16_cond_branch_group;
   this->handler_table_[0b111000] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
   this->handler_table_[0b111001] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
   this->handler_table_[0b101101] = &Cpu::decode_thumb16_push_misc_group; // 7 opcode bits
@@ -331,6 +332,67 @@ void Cpu::execute_thumb16_data_processing_cmp(const DecodedInstruction& decoded,
   const bool overflow = (SIGN(rn) != SIGN(rm)) && (SIGN(result) != SIGN(rn));
 
   set_overflow_flag(overflow);
+}
+
+void Cpu::decode_thumb16_cond_branch_group(DecodedInstruction& decoded){
+
+  decoded.opcode = (ir_ >> 12U) & 0xFU;
+  std::uint32_t offset = (ir_ & 0xFFU) << 1U;
+  if(offset & 0x100U)
+    offset |= 0xFFFFFE00U;
+  decoded.imm = static_cast<std::int32_t>(offset);
+  const std::uint8_t cond = static_cast<std::uint8_t>((ir_ >> 8U) & 0xFU);
+  decoded.size = 16;
+  std::ostringstream out;
+
+  switch(cond){
+    case 0x0:
+      decoded.execute = &Cpu::execute_thumb16_cond_branch_beq;
+      out << "beq #0x" << std::hex << static_cast<unsigned int>(decoded.imm);
+      decoded.instr = out.str();
+      break;
+    case 0x1:
+      decoded.execute = &Cpu::execute_thumb16_cond_branch_bne;
+      out << "bne #0x" << std::hex << static_cast<unsigned int>(decoded.imm);
+      decoded.instr = out.str();
+      break;
+    case 0x2:
+      decoded.execute = &Cpu::execute_thumb16_cond_branch_bcs;
+      out << "bcs #0x" << std::hex << static_cast<unsigned int>(decoded.imm);
+      decoded.instr = out.str();
+      break;
+
+    case 0x3:
+      decoded.execute = &Cpu::execute_thumb16_cond_branch_bcc;
+      out << "bcc #0x" << std::hex << static_cast<unsigned int>(decoded.imm);
+      decoded.instr = out.str();
+      break;
+  }
+
+}
+
+void Cpu::execute_thumb16_cond_branch_beq(const DecodedInstruction& decoded, Memory& memory){
+  std::int64_t target = static_cast<std::int64_t>(regs_[static_cast<std::size_t>(Register::PC)]) + 2 + static_cast<std::int64_t>(decoded.imm);
+  if(read_zero_flag())
+    write_reg(Register::PC, static_cast<std::uint32_t>(target));
+}
+
+void Cpu::execute_thumb16_cond_branch_bne(const DecodedInstruction& decoded, Memory& memory){
+  std::int64_t target = static_cast<std::int64_t>(regs_[static_cast<std::size_t>(Register::PC)]) + 2 + static_cast<std::int64_t>(decoded.imm);
+  if(!read_zero_flag())
+    write_reg(Register::PC, static_cast<std::uint32_t>(target));
+}
+void Cpu::execute_thumb16_cond_branch_bcs(const DecodedInstruction& decoded, Memory& memory){
+
+  std::int64_t target = static_cast<std::int64_t>(regs_[static_cast<std::size_t>(Register::PC)]) + 2 + static_cast<std::int64_t>(decoded.imm);
+  if(read_carry_flag())
+    write_reg(Register::PC, static_cast<std::uint32_t>(target));
+}
+void Cpu::execute_thumb16_cond_branch_bcc(const DecodedInstruction& decoded, Memory& memory){
+
+  std::int64_t target = static_cast<std::int64_t>(regs_[static_cast<std::size_t>(Register::PC)]) + 2 + static_cast<std::int64_t>(decoded.imm);
+  if(!read_carry_flag())
+    write_reg(Register::PC,static_cast<std::uint32_t>(target));
 }
 
 /* No Operation - NOP instruction */
