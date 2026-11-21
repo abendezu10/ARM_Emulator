@@ -1,1 +1,6 @@
-1.) do all the instructions thats between adds and ldr
+1. Fix unconditional B sign extension
+2. Implement STR immediate
+3. Fix ADDS immediate flags
+4. Fix MOVS debug register display
+5. Run startup again
+6. Then you'll reach the 32-bit BL main at 0x0800002C.) do all the instructions thats between adds and ldr

@@ -139,6 +139,9 @@ class Cpu{
     void decode_thumb16_ldr_literal(DecodedInstruction& decoded);
     void execute_thumb16_ldr_literal(const DecodedInstruction& decoded, Memory& memory);
 
+    void decode_thumb16_str_word_imm(DecodedInstruction& decoded);
+    void execute_thumb16_str_word_imm(const DecodedInstruction& decoded, Memory& memory);
+
     /* adds Rd, Ra, Rb | subs Rd, Ra, Rb - seems right!*/
     void decode_thumb16_adds_subs_reg_group(DecodedInstruction& decoded);
     void execute_thumb16_adds_regs(const DecodedInstruction& decoded, Memory& memory);
@@ -168,6 +171,8 @@ class Cpu{
     void execute_thumb16_cond_branch_bcs(const DecodedInstruction& decoded, Memory& memory);
     void execute_thumb16_cond_branch_bcc(const DecodedInstruction& decoded, Memory& memory);
 
+    void decode_thumb32_branch_group(DecodedInstruction& decoded);
+    
     void decode_nop(DecodedInstruction& decoded);
 
     void cpu_state(void) const;
