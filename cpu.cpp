@@ -34,29 +34,46 @@ namespace{
 }
 
 Cpu::Cpu(){
-  
+
   handler_table_.fill(&Cpu::decode_nop);
-  this->handler_table_[0b001000] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
-  this->handler_table_[0b001001] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
-  this->handler_table_[0b010010] = &Cpu::decode_thumb16_ldr_literal;
-  this->handler_table_[0b010011] = &Cpu::decode_thumb16_ldr_literal;
-  this->handler_table_[0b011000] = &Cpu::decode_thumb16_str_word_imm;
-  this->handler_table_[0b011001] = &Cpu::decode_thumb16_str_word_imm;
+
   this->handler_table_[0b000110] = &Cpu::decode_thumb16_adds_subs_reg_group;
   this->handler_table_[0b000111] = &Cpu::decode_thumb16_adds_subs_reg_group;
+
+  this->handler_table_[0b001000] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
+  this->handler_table_[0b001001] = &Cpu::decode_thumb16_movs_imm; // 5 opcode bits
+
   this->handler_table_[0b001100] = &Cpu::decode_thumb16_adds_imm;
   this->handler_table_[0b001101] = &Cpu::decode_thumb16_adds_imm;
+
   this->handler_table_[0b001110] = &Cpu::decode_thumb16_subs_imm;
   this->handler_table_[0b001111] = &Cpu::decode_thumb16_subs_imm;
+
+  this->handler_table_[0b010000] = &Cpu::decode_thumb16_data_processing_reg;
+  this->handler_table_[0b010001] = &Cpu::decode_thumb16_special_data_processing_group;
+
+  this->handler_table_[0b010010] = &Cpu::decode_thumb16_ldr_literal;
+  this->handler_table_[0b010011] = &Cpu::decode_thumb16_ldr_literal;
+
+  this->handler_table_[0b011000] = &Cpu::decode_thumb16_str_word_imm;
+  this->handler_table_[0b011001] = &Cpu::decode_thumb16_str_word_imm;
+
+  this->handler_table_[0b011010] = &Cpu::decode_thumb16_ldr_word_imm;
+  this->handler_table_[0b011011] = &Cpu::decode_thumb16_ldr_word_imm;
+
+  this->handler_table_[0b101010] = &Cpu::decode_thumb16_add_rd_sp_imm;
+  this->handler_table_[0b101011] = &Cpu::decode_thumb16_add_rd_sp_imm;
+
+  this->handler_table_[0b101100] = &Cpu::decode_thumb16_sp_add_sub_group;
+  this->handler_table_[0b101101] = &Cpu::decode_thumb16_push_misc_group; // 7 opcode bits
+
   this->handler_table_[0b110100] = &Cpu::decode_thumb16_cond_branch_group;
+
   this->handler_table_[0b111000] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
   this->handler_table_[0b111001] = &Cpu::decode_thumb16_uncond_branch; // 5 opcode bits
-  this->handler_table_[0b101101] = &Cpu::decode_thumb16_push_misc_group; // 7 opcode bits
-  this->handler_table_[0b010000] = &Cpu::decode_thumb16_data_processing_reg;
 
   this->handler_table_[0b111100] = &Cpu::decode_thumb32_branch_group;
   this->handler_table_[0b111101] = &Cpu::decode_thumb32_branch_group;
-;
 }
 
 void Cpu::increment_pc(std::uint8_t instruction_size){
@@ -95,13 +112,13 @@ void Cpu::cycle(Memory& memory){
   Cpu::DecodedInstruction decoded_instr{};
 
   fetch16(memory);
-  //wrong
   
   std::uint8_t handler_id = static_cast<std::uint8_t>((ir_ >> 10) & 0x3f);
 
   if(handler_id >= 0b111010){
     // this is a 32 bit instruction and first it fetches 16 bit then fetches other half word if it has this prefix
-    ir_ |= static_cast<std::uint32_t>(memory.read_16bit(regs_[static_cast<std::size_t>(Register::PC)])) << 16;
+    ir_ <<= 16;
+    ir_ |= static_cast<std::uint32_t>(memory.read_16bit(regs_[static_cast<std::size_t>(Register::PC)]));
     increment_pc(2);
     // A 32 bit instr is laid out on memory as follow AB CD EF GH, then when fetched into ir_ it needs to be 
     // GH EF CD AB 
@@ -118,11 +135,11 @@ void Cpu::cycle(Memory& memory){
   ExecuteHandler execute = decoded_instr.execute;
   (this->*execute)(decoded_instr, memory);
 
+  memory.print_memory("SRAM");
   cpu_state();
 }
 
 void Cpu::decode_instruction(DecodedInstruction& decoded, uint8_t handler_id){
-
   DecodeHandler handler = this->handler_table_[handler_id];
   (this->*handler)(decoded);
 }
@@ -130,19 +147,23 @@ void Cpu::decode_instruction(DecodedInstruction& decoded, uint8_t handler_id){
 /* movs rd, imm - thumb 16-bit instruction */
 void Cpu::decode_thumb16_movs_imm(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 11) & 0x1f;
-
-  decoded.imm = ir_ & 0xff;
+  decoded.imm = static_cast<std::int32_t>(ir_ & 0xff);
   decoded.rd = static_cast<Register>((ir_ >> 8) & 0x7);
   decoded.execute = &Cpu::execute_thumb16_movs_imm;
   decoded.size = 16;
 
   std::ostringstream out;
-  out << "movs " << register_names[static_cast<std::size_t>(decoded.rn)] << ", #0x" << std::hex << static_cast<unsigned int>(decoded.imm);
+  out << "movs " << register_names[static_cast<std::size_t>(decoded.rd)] << ", #0x" << std::hex << static_cast<unsigned int>(decoded.imm);
   decoded.instr = out.str();
 }
 
 void Cpu::execute_thumb16_movs_imm(const DecodedInstruction& decoded, Memory& memory){
-  write_reg(decoded.rd, decoded.imm);
+  const std::uint32_t result = static_cast<std::uint32_t>(decoded.imm);
+
+  write_reg(decoded.rd, result);
+  
+  set_zero_flag(result == 0U);
+  set_negative_flag(SIGN(result) != 0U);
 }
 
 void Cpu::decode_thumb16_ldr_literal(DecodedInstruction& decoded){
@@ -186,6 +207,32 @@ void Cpu::execute_thumb16_str_word_imm(const DecodedInstruction& decoded, Memory
   memory.write_32bit(read_reg(decoded.rn) + static_cast<std::uint32_t>(decoded.imm), read_reg(decoded.rd));
 }
 
+void Cpu::decode_thumb16_ldr_word_imm(DecodedInstruction& decoded){
+  const std::uint8_t opcode = (ir_ >> 11) & 0x1FU;
+  const Register rt = static_cast<Register>((ir_ & 0x7U));
+  const Register rn = static_cast<Register>((ir_ >> 3) & 0x7U);
+  const std::uint32_t imm = ((ir_ >> 6) & 0x1FU) << 2;
+  
+  std::ostringstream out;
+
+  decoded.opcode = opcode;
+  decoded.rd = rt;
+  decoded.rn = rn;
+  decoded.imm = imm;
+  decoded.execute = &Cpu::execute_thumb16_ldr_word_imm;
+  decoded.size = 16;
+
+  out << "ldr " << register_names[static_cast<std::size_t>(rt)] << ", [" << register_names[static_cast<std::size_t>(rn)] 
+      << ", #0x" << std::hex << static_cast<unsigned int>(decoded.imm) << "]";
+
+  decoded.instr = out.str();
+}
+
+void Cpu::execute_thumb16_ldr_word_imm(const DecodedInstruction& decoded, Memory& memory){
+  const std::uint32_t addr = read_reg(decoded.rn) + static_cast<std::uint32_t>(decoded.imm);
+  const std::uint32_t value = memory.read_32bit(addr);
+  write_reg(decoded.rd, value);
+}
 /* adds Rd, Rn, Rm */ 
 void Cpu::decode_thumb16_adds_subs_reg_group(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 9) & 1;
@@ -304,64 +351,150 @@ void Cpu::execute_thumb16_uncond_branch(const DecodedInstruction& decoded, Memor
 }
 
 void Cpu::decode_thumb16_push_misc_group(DecodedInstruction& decoded){
-  decoded.opcode = (ir_ >> 9) & 1;
-  decoded.instr = "push <registers>";
-  decoded.reg_list &= 0;
-  decoded.reg_list |= (ir_ & (1 << 14));
-  decoded.reg_list |= static_cast<std::uint16_t>((ir_ & 0xff));
+  decoded.opcode = (ir_ >> 9U) & 0x1U;
+  decoded.reg_list = ir_ & 0xFFU;
+  if(ir_ & (1U << 8U))
+    decoded.reg_list |= (1U << 14U);
+
   decoded.size = 16;
 
-  switch(decoded.opcode){
-    case 0:
+  std::ostringstream out;
+
+  switch (decoded.opcode) {
+    case 0: {
       decoded.execute = &Cpu::execute_thumb16_push;
-      break;
+      out << "push {";
+      bool first = true;
+      for (std::size_t i = 0; i < 8; ++i) {
+        if (decoded.reg_list & (1U << i)) {
+          if (!first)
+            out << ", ";
+            out << register_names[i];
+            first = false;
+          }
+        }
+
+        if (decoded.reg_list & (1U << 14U)) {
+          if (!first)
+            out << ", ";
+          out << "lr";
+          }
+          out << "}";
+          decoded.instr = out.str();
+          break;
+        }
 
     case 1:
       std::cout << "Undefined!" << std::endl;
       break;
-  };
+    }
 }
 
 //complete push
 void Cpu::execute_thumb16_push(const DecodedInstruction& decoded, Memory& memory){
+    std::uint32_t count = 0;
 
-  if((decoded.reg_list >> 14) & 1){
-    memory.write_32bit(regs_[static_cast<std::size_t>(Register::SP)], regs_[static_cast<std::size_t>(Register::LR)]);
-    decrement_sp(4);
+    for (int i = 0; i < 8; ++i) {
+        if (decoded.reg_list & (1U << i))
+            ++count;
+    }
+
+    if (decoded.reg_list & (1U << 14U))
+        ++count;
+    const std::uint32_t old_sp = read_reg(Register::SP);
+    const std::uint32_t new_sp = old_sp - (count * 4U);
+    std::uint32_t address = new_sp;
+
+    for (int i = 0; i < 8; ++i) {
+        if (decoded.reg_list & (1U << i)) {
+            memory.write_32bit(address, regs_[i]);
+            address += 4U;
+        }
+    }
+
+    if (decoded.reg_list & (1U << 14U)) {
+        memory.write_32bit(
+            address,
+            read_reg(Register::LR)
+        );
+    }
+
+    write_reg(Register::SP, new_sp);
+}
+
+void Cpu::decode_thumb16_data_processing_reg(DecodedInstruction& decoded){
+  const std::uint8_t op = static_cast<std::uint8_t>((ir_ >> 6U) & 0xFU);
+  const Register rn = static_cast<Register>(ir_ & 0x7U);
+  const Register rm = static_cast<Register>((ir_ >> 3U) & 0x7U);
+
+  decoded.opcode = op;
+  decoded.size = 16;
+  std::ostringstream out;
+
+  switch(op){
+    case 0b1010:{ // CMP
+      decoded.rn = rn;
+      decoded.rm = rm;
+      decoded.execute = &Cpu::execute_thumb16_cmp_reg;
+
+      out << "cmp " << register_names[static_cast<std::size_t>(rn)] << ", " << register_names[static_cast<std::size_t>(rm)];
+      decoded.instr = out.str();
+      break;
+    }
+
+    default:
+      break;
   }
+}
 
-  for(int i = 7; i >=0; i--){
-    std::uint8_t push_reg = (decoded.reg_list >> i) & 0x1;
-    if(push_reg){
-      memory.write_32bit(regs_[static_cast<size_t>(Register::SP)], regs_[i]);
-      decrement_sp(4);
+
+void Cpu::decode_thumb16_special_data_processing_group(DecodedInstruction& decoded){
+  decoded.opcode = (ir_ >> 10U) & 0x3FU;
+  decoded.size = 16;
+
+  const std::uint8_t op = static_cast<std::uint8_t>((ir_ >> 8U) & 0x3U);
+  const Register rdn = static_cast<Register>(((ir_ >> 4U) & 0x8U) | (ir_ & 0x7U));
+  const Register rm = static_cast<Register>((ir_ >> 3U) & 0xFU);
+
+  std::ostringstream out;
+
+  switch(op){
+    case 0b00:{ // ADD
+      decoded.rd = rdn;
+      decoded.rm = rm;
+      decoded.execute = &Cpu::execute_thumb16_special_add_reg;
+
+      out << "add " << register_names[static_cast<std::size_t>(rdn)] << ", " << register_names[static_cast<std::size_t>(rm)];
+      decoded.instr = out.str();
+      break;
+    }
+
+    case 0b01:{ // CMP
+      decoded.rn = rdn;
+      decoded.rm = rm;
+      decoded.execute = &Cpu::execute_thumb16_cmp_reg;
+
+      out << "cmp " << register_names[static_cast<std::size_t>(rdn)] << ", " << register_names[static_cast<std::size_t>(rm)];
+      decoded.instr = out.str();
+      break;
+    }
+
+    case 0b10:{ // MOV
+      break;
+    }
+
+    case 0b11:{ // BX / BLX
+      break;
     }
   }
 }
 
-
-void Cpu::decode_thumb16_data_processing_reg(DecodedInstruction& decoded){
-  decoded.opcode = (ir_ >> 9) & 0x3fU;
-  decoded.rm = static_cast<Register>((ir_ >> 3) & 0x7U);
-  decoded.rn = static_cast<Register>(ir_ & 0x7U);
-  decoded.size = 16;
-  uint8_t op = (ir_ >> 6) & 0xfU;
-  std::ostringstream out;
-
-  switch (op) {
-    case 0b1010 : 
-      out << "cmp " << register_names[static_cast<std::size_t>(decoded.rn)] << ", " << register_names[static_cast<std::size_t>(decoded.rm)];
-      decoded.instr = out.str();
-      decoded.execute = &Cpu::execute_thumb16_data_processing_cmp;
-      break;
-      
-    default: 
-      break;
-  }
-
+void Cpu::execute_thumb16_special_add_reg(const DecodedInstruction& decoded, Memory& memory){
+  const std::uint32_t result = read_reg(decoded.rd) + read_reg(decoded.rm);
+  write_reg(decoded.rd, result);
 }
 
-void Cpu::execute_thumb16_data_processing_cmp(const DecodedInstruction& decoded, Memory& memory){
+void Cpu::execute_thumb16_cmp_reg(const DecodedInstruction& decoded, Memory& memory){
   const std::uint32_t rn = read_reg(decoded.rn);
   const std::uint32_t rm = read_reg(decoded.rm);
   const std::uint32_t result = rn - rm;
@@ -371,9 +504,61 @@ void Cpu::execute_thumb16_data_processing_cmp(const DecodedInstruction& decoded,
   set_carry_flag(rn >= rm);
 
   const bool overflow = (SIGN(rn) != SIGN(rm)) && (SIGN(result) != SIGN(rn));
-
   set_overflow_flag(overflow);
 }
+
+void Cpu::decode_thumb16_sp_add_sub_group(DecodedInstruction& decoded){
+  const std::uint8_t opcode = static_cast<std::uint8_t>((ir_ >> 8));
+  const std::uint8_t op = (ir_ >> 7) & 0x1U;
+  const std::uint32_t imm = (ir_ & 0x7FU) << 2;
+  decoded.imm = imm;
+  decoded.rd = Register::SP;
+  decoded.size = 16;
+
+  std::ostringstream out;
+  switch (opcode) {
+    case 0b10110000:{
+      decoded.execute = (op) ? &Cpu::execute_thumb16_sp_sub_imm : &Cpu::execute_thumb16_sp_add_imm;
+      const std::string op_str = (op) ? "sub " : "add ";
+      out << op_str << " sp, #0x" << std::hex << static_cast<unsigned int>(decoded.imm);
+      decoded.instr = out.str();
+      break;
+      }
+    default:
+      
+      break;
+  }
+}
+
+void Cpu::execute_thumb16_sp_add_imm(const DecodedInstruction& decoded, Memory& memory){
+  const std::uint32_t new_sp = read_reg(Register::SP) + static_cast<std::uint32_t>(decoded.imm);
+  write_reg(Register::SP, new_sp);
+}
+
+void Cpu::execute_thumb16_sp_sub_imm(const DecodedInstruction& decoded, Memory& memory){
+  const std::uint32_t new_sp = read_reg(Register::SP) - static_cast<std::uint32_t>(decoded.imm);
+  write_reg(Register::SP, new_sp);
+}
+
+void Cpu::decode_thumb16_add_rd_sp_imm(DecodedInstruction& decoded){
+  const std::uint8_t opcode = static_cast<std::uint8_t>((ir_ >> 11));
+  const Register rd = static_cast<Register>((ir_ >> 8) & 0x7U);
+  const std::uint32_t imm = (ir_ & 0xFFU) << 2;
+  std::ostringstream out;
+
+  decoded.opcode = opcode;
+  decoded.imm = imm;
+  decoded.rd = rd;
+  decoded.execute = &Cpu::execute_thumb16_add_rd_sp_imm;
+  decoded.size = 16;
+  out << "add " << register_names[static_cast<std::size_t>(rd)] << ", sp, #0x" << std::hex << static_cast<unsigned int>(imm);
+  decoded.instr = out.str();
+}
+
+void Cpu::execute_thumb16_add_rd_sp_imm(const DecodedInstruction& decoded, Memory& memory){
+  const std::uint32_t result = read_reg(Register::SP) + static_cast<std::uint32_t>(decoded.imm);
+  write_reg(decoded.rd, result);
+} 
 
 void Cpu::decode_thumb16_cond_branch_group(DecodedInstruction& decoded){
   decoded.opcode = (ir_ >> 12U) & 0xFU;
@@ -438,7 +623,50 @@ void Cpu::execute_thumb16_cond_branch_bcc(const DecodedInstruction& decoded, Mem
 
 
 void Cpu::decode_thumb32_branch_group(DecodedInstruction& decoded){
+  const std::uint16_t first_halfword = static_cast<uint16_t>(ir_ >> 16U);
+  const std::uint16_t second_halfword = static_cast<uint16_t>(ir_);
 
+  const std::uint16_t op = second_halfword & 0xD000U;
+  const std::uint32_t s = (first_halfword >> 10U) & 0x1U;
+  const std::uint8_t j1 = (second_halfword >> 13U) & 0x1U;
+  const std::uint8_t j2 = (second_halfword >> 11U) & 0x1U;
+
+  std::ostringstream out;
+
+  switch (op) {
+    case 0xD000U: {
+      decoded.execute = &Cpu::execute_thumb32_branch_bl;
+  
+      const std::uint32_t i1 = (~(j1 ^ s)) & 0x1U;
+      const std::uint32_t i2 = (~(j2 ^ s)) & 0x1U;
+
+      const std::uint32_t imm10 = first_halfword & 0x3FFU;
+      const std::uint32_t imm11 = second_halfword & 0x7FFU;
+
+      std::uint32_t offset = (s << 24U) |
+                             (i1 << 23U) |
+                             (i2 << 22U) |
+                             (imm10 << 12U) |
+                             (imm11 << 1U);
+
+      decoded.imm = static_cast<std::int32_t>(offset);
+
+      out << "bl #0x" << std::hex << static_cast<unsigned int>(decoded.imm);
+      decoded.instr = out.str();
+      break;
+    }
+    default:
+      break;
+  }
+  decoded.size = 32;
+}
+
+void Cpu::execute_thumb32_branch_bl(const DecodedInstruction& decoded, Memory& memory){
+  const std::uint32_t arch_pc = regs_[static_cast<std::size_t>(Register::PC)];
+
+  const std::int64_t target = static_cast<std::int64_t>(arch_pc) + static_cast<std::int64_t>(decoded.imm);
+  write_reg(Register::LR, arch_pc | 1U);
+  write_reg(Register::PC,static_cast<uint32_t>(target));
 }
 
 /* No Operation - NOP instruction */

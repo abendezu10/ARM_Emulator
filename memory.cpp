@@ -71,9 +71,9 @@ std::uint16_t Flash::read_16bit(std::uint32_t offset){
 std::uint32_t Flash::read_32bit(std::uint32_t offset){
   std::uint32_t addr_i = offset - 0x08000000;
   std::uint32_t fullword = (mem_[addr_i + 3] << 24) |
-                      (mem_[addr_i + 2] << 16) |
-                      (mem_[addr_i + 1] << 8)  |
-                      (mem_[addr_i]);
+                           (mem_[addr_i + 2] << 16) |
+                           (mem_[addr_i + 1] << 8)  |
+                           (mem_[addr_i]);
   return fullword;
 }
 
@@ -90,16 +90,37 @@ void Flash::set_size(std::size_t size){
 }
 
 void SRAM::print_memory(void) const{
-  for(std::size_t i; i < used_size_; i++){
-    std::cout << "[SRAM] The byte at 0x" 
-              << std::hex 
-              << (0x20017fff - i)  
-              << ": 0x" 
-              << static_cast<unsigned int>(mem_[i]) 
-              << "\n";
-  }
-}
+  std::cout << "┌─────────────────────────────┐\n"
+            << "│    ADDRESS   │     VALUE    │\n"
+            << "├─────────────────────────────┤\n";
 
+  std::uint32_t address = 0x20017ffc;
+
+  for(int i = 0; i < 10; i++){
+    std::uint32_t addr_i = address - 0x20000000;
+
+    std::uint32_t value = static_cast<std::uint32_t>(mem_[addr_i]) |
+                          (static_cast<std::uint32_t>(mem_[addr_i + 1]) << 8) |
+                          (static_cast<std::uint32_t>(mem_[addr_i + 2]) << 16) |
+                          (static_cast<std::uint32_t>(mem_[addr_i + 3]) << 24);
+
+    std::cout << "│ 0x"
+              << std::hex
+              << std::setw(8)
+              << std::setfill('0')
+              << address
+              << "   │ 0x"
+              << std::setw(8)
+              << value
+              << "   │\n";
+
+    address -= 4;
+  }
+
+  std::cout << "└─────────────────────────────┘\n"
+            << std::dec
+            << std::setfill(' ');
+}
 std::uint8_t SRAM::read_8bit(std::uint32_t offset){
   std::uint32_t addr_i = 0x20017fff - offset;
   std::cout << "The 8-bit value is: 0x"
@@ -114,8 +135,8 @@ std::uint8_t SRAM::read_8bit(std::uint32_t offset){
 std::uint16_t SRAM::read_16bit(std::uint32_t offset){
   std::uint32_t addr_i = offset - 0x08000000;
   std::uint16_t halfword = (mem_[addr_i + 1] << 8) |
-                      (mem_[addr_i]);
-  std::cout << "The 8-bit value is: 0x"
+                           (mem_[addr_i]);
+  std::cout << "The 16-bit value is: 0x"
           << std::hex
           << static_cast<unsigned int>(halfword)
           << std::dec
@@ -124,12 +145,12 @@ std::uint16_t SRAM::read_16bit(std::uint32_t offset){
 }
 
 std::uint32_t SRAM::read_32bit(std::uint32_t offset){
-  std::uint32_t addr_i = 0x20017fff - offset;
-  std::uint32_t fullword = (mem_[addr_i + 3] << 24) | 
+  std::uint32_t addr_i = offset - 0x20000000;
+  std::uint32_t fullword = (mem_[addr_i - 3] << 24) |
                            (mem_[addr_i + 2] << 16) |
                            (mem_[addr_i + 1] << 8)  |
                            (mem_[addr_i]);
-  std::cout << "The 8-bit value is: 0x"
+  std::cout << "The 32-bit value is: 0x"
           << std::hex
           << static_cast<unsigned int>(fullword)
           << std::dec
@@ -138,7 +159,7 @@ std::uint32_t SRAM::read_32bit(std::uint32_t offset){
 }
 
 void SRAM::write_8bit(std::uint32_t offset, std::uint8_t value){
-  std::uint32_t addr_i = 0x20017fff - offset;
+  std::uint32_t addr_i = offset - 0x20000000;
   mem_[addr_i] = value;
 }
 
@@ -149,12 +170,12 @@ void SRAM::write_16bit(std::uint32_t offset, std::uint16_t value){
 }
 
 void SRAM::write_32bit(std::uint32_t offset, std::uint32_t value){
-  std::uint32_t addr_i = 0x20017fff - offset;
+  std::uint32_t addr_i = offset -  0x20000000;
 
-  mem_[addr_i] = static_cast<std::uint8_t>((value >> 24) & 0xff);
-  mem_[addr_i + 1] = static_cast<std::uint8_t>((value >> 16) & 0xff);
-  mem_[addr_i + 2] = static_cast<std::uint8_t>((value >> 8) & 0xff);
-  mem_[addr_i + 3] = static_cast<std::uint8_t>(value & 0xff);
+  mem_[addr_i] = static_cast<std::uint8_t>(value & 0xff);
+  mem_[addr_i + 1] = static_cast<std::uint8_t>((value >> 8) & 0xff);
+  mem_[addr_i + 2] = static_cast<std::uint8_t>((value >> 16) & 0xff);
+  mem_[addr_i + 3] = static_cast<std::uint8_t>((value >> 24) & 0xff);
 }
 
 
@@ -235,9 +256,11 @@ std::uint32_t Memory::read_32bit(std::uint32_t addr){
     debug_access("RESET READ", "FLASH_ALIAS", addr, fullword, 32);
   }else if(addr <= 0x0807ffff && addr >= 0x08000000){
     fullword = flash_.read_32bit(addr);
-  } else {
+  }else if(addr >= 0x20000000 && addr <= 0x20017fff){
+    fullword = sram_.read_32bit(addr);
+  }else 
     throw std::invalid_argument("Using 32-bit read operation only is done for the first two entries in the vector table.");
-  }
+  
   return fullword;
 }
 
