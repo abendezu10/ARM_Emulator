@@ -146,6 +146,8 @@ class Cpu{
     void decode_thumb16_adds_subs_reg_group(DecodedInstruction& decoded);
     void execute_thumb16_adds_regs(const DecodedInstruction& decoded, Memory& memory);
     void execute_thumb16_subs_regs(const DecodedInstruction& decoded, Memory& memory);
+    void execute_thumb16_adds_imm_regs(const DecodedInstruction& decoded, Memory& memory);
+    void execute_thumb16_subs_imm_regs(const DecodedInstruction& decoded, Memory& memory);
 
     /* adds Rd, #imm */
     void decode_thumb16_adds_imm(DecodedInstruction& decoded);
@@ -166,12 +168,18 @@ class Cpu{
 
     void decode_thumb16_special_data_processing_group(DecodedInstruction& decoded);
     void execute_thumb16_special_add_reg(const DecodedInstruction& decoded, Memory& memory);
+    void execute_thumb16_special_mov_reg(const DecodedInstruction& decoded, Memory& memory);
+    void execute_thumb16_special_blx_reg(const DecodedInstruction& decoded, Memory& memory);
+    void execute_thumb16_special_bx_reg(const DecodedInstruction& decoded, Memory& memory);
 
     void decode_thumb16_uncond_branch(DecodedInstruction& decoded);
     void execute_thumb16_uncond_branch(const DecodedInstruction& decoded, Memory& memory);
     
     void decode_thumb16_push_misc_group(DecodedInstruction& decoded);
     void execute_thumb16_push(const DecodedInstruction& decoded, Memory& memory);
+
+    void decode_thumb16_pop_misc_group(DecodedInstruction& decoded);
+    void execute_thumb16_pop(const DecodedInstruction& decoded, Memory& memory);
 
     void decode_thumb16_ldr_word_imm(DecodedInstruction& decoded);
     void execute_thumb16_ldr_word_imm(const DecodedInstruction& decoded, Memory& memory);

@@ -146,7 +146,7 @@ std::uint16_t SRAM::read_16bit(std::uint32_t offset){
 
 std::uint32_t SRAM::read_32bit(std::uint32_t offset){
   std::uint32_t addr_i = offset - 0x20000000;
-  std::uint32_t fullword = (mem_[addr_i - 3] << 24) |
+  std::uint32_t fullword = (mem_[addr_i + 3] << 24) |
                            (mem_[addr_i + 2] << 16) |
                            (mem_[addr_i + 1] << 8)  |
                            (mem_[addr_i]);
@@ -247,6 +247,8 @@ std::uint16_t Memory::read_16bit(std::uint32_t addr){
 // two half words
 std::uint32_t Memory::read_32bit(std::uint32_t addr){
   uint32_t fullword = 0;
+  std::cout << "0x" << std::hex << static_cast<unsigned int>(addr) << std::endl;
+
 
   if(addr == 0){
     fullword = flash_.read_32bit(0x08000000);
