@@ -9,4 +9,8 @@ test2: emulator
 	$(MAKE) test_cases/02_case
 	./emulator test_cases/02_case/test.bin
 
+test3: emulator
+	$(MAKE) test_cases/03_case
+	./emulator test_cases/03_case/test.bin
+
 
